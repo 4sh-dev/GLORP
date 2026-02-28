@@ -81,7 +81,7 @@ export const useGameStore = create<GameStore>()(
             trainingData: state.trainingData - cost,
             upgradeOwned: { ...state.upgradeOwned, [id]: owned + 1 },
             lastSaved: Date.now(),
-            mood: "Excited" as Mood,
+            mood: "Excited",
             moodChangedAt: Date.now(),
           };
         }),
