@@ -1,5 +1,6 @@
 import { Group, Text } from "@mantine/core";
 import { UPGRADES } from "../data/upgrades";
+import { computeWisdomMultiplier } from "../engine/rebirthEngine";
 import { getTotalTdPerSecond } from "../engine/upgradeEngine";
 import { useGameStore } from "../store";
 import { formatNumber } from "../utils/formatNumber";
@@ -7,7 +8,13 @@ import { formatNumber } from "../utils/formatNumber";
 export function StatsBar() {
   const trainingData = useGameStore((s) => s.trainingData);
   const upgradeOwned = useGameStore((s) => s.upgradeOwned);
-  const tdPerSecond = getTotalTdPerSecond(UPGRADES, upgradeOwned);
+  const wisdomTokens = useGameStore((s) => s.wisdomTokens);
+  const wisdomMultiplier = computeWisdomMultiplier(wisdomTokens);
+  const tdPerSecond = getTotalTdPerSecond(
+    UPGRADES,
+    upgradeOwned,
+    wisdomMultiplier,
+  );
 
   return (
     <Group
@@ -30,6 +37,14 @@ export function StatsBar() {
           {tdPerSecond > 0 ? formatNumber(tdPerSecond) : "0.0"}
         </Text>
       </Text>
+      {wisdomTokens > 0 && (
+        <Text size="sm" ff="monospace">
+          Wisdom:{" "}
+          <Text span fw={700} c="yellow">
+            {wisdomTokens} ✦ (+{((wisdomMultiplier - 1) * 100).toFixed(0)}%)
+          </Text>
+        </Text>
+      )}
     </Group>
   );
 }

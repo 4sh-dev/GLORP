@@ -1,17 +1,26 @@
 import { useEffect, useRef, useState } from "react";
 import type { DialogueLine } from "../data/dialogue";
-import { DIALOGUE } from "../data/dialogue";
+import { getDialogue } from "../data/dialogue";
+import type { Species } from "../data/species";
 import type { Mood } from "../engine/moodEngine";
 import { useGameStore } from "../store";
 
-function getFilteredLines(stage: number, mood: Mood): readonly DialogueLine[] {
-  const dialogue = DIALOGUE[stage] ?? DIALOGUE[0];
+function getFilteredLines(
+  species: Species,
+  stage: number,
+  mood: Mood,
+): readonly DialogueLine[] {
+  const dialogue = getDialogue(species, stage);
   const moodLines = dialogue.idle.filter((l) => l.moods?.includes(mood));
   return moodLines.length > 0 ? moodLines : dialogue.idle;
 }
 
-function getRandomIdleLine(stage: number, mood: Mood): string {
-  const lines = getFilteredLines(stage, mood);
+function getRandomIdleLine(
+  species: Species,
+  stage: number,
+  mood: Mood,
+): string {
+  const lines = getFilteredLines(species, stage, mood);
   return lines[Math.floor(Math.random() * lines.length)].text;
 }
 
@@ -25,9 +34,10 @@ export function useDialogue(): string {
   const hasSeenFirstEvolution = useGameStore((s) => s.hasSeenFirstEvolution);
   const hasSeenFirstUpgrade = useGameStore((s) => s.hasSeenFirstUpgrade);
   const mood = useGameStore((s) => s.mood);
+  const currentSpecies = useGameStore((s) => s.currentSpecies);
 
   const [currentLine, setCurrentLine] = useState(() =>
-    getRandomIdleLine(evolutionStage, mood),
+    getRandomIdleLine(currentSpecies, evolutionStage, mood),
   );
 
   const prevStageRef = useRef(evolutionStage);
@@ -35,41 +45,41 @@ export function useDialogue(): string {
     Object.values(upgradeOwned).some((c) => c > 0),
   );
 
-  // Idle rotation timer — restarts when stage or mood changes
+  // Idle rotation timer — restarts when stage, mood, or species changes
   useEffect(() => {
     let timeoutId: ReturnType<typeof setTimeout>;
 
     const scheduleNext = () => {
       timeoutId = setTimeout(() => {
-        setCurrentLine(getRandomIdleLine(evolutionStage, mood));
+        setCurrentLine(getRandomIdleLine(currentSpecies, evolutionStage, mood));
         scheduleNext();
       }, getRandomDelay());
     };
 
     scheduleNext();
     return () => clearTimeout(timeoutId);
-  }, [evolutionStage, mood]);
+  }, [currentSpecies, evolutionStage, mood]);
 
   // First evolution trigger
   useEffect(() => {
     if (evolutionStage > prevStageRef.current && !hasSeenFirstEvolution) {
-      const dialogue = DIALOGUE[evolutionStage] ?? DIALOGUE[0];
+      const dialogue = getDialogue(currentSpecies, evolutionStage);
       setCurrentLine(dialogue.triggers.firstEvolution);
       useGameStore.getState().markFirstEvolutionSeen();
     }
     prevStageRef.current = evolutionStage;
-  }, [evolutionStage, hasSeenFirstEvolution]);
+  }, [currentSpecies, evolutionStage, hasSeenFirstEvolution]);
 
   // First upgrade trigger
   useEffect(() => {
     const hasUpgrades = Object.values(upgradeOwned).some((c) => c > 0);
     if (hasUpgrades && !prevHasUpgradesRef.current && !hasSeenFirstUpgrade) {
-      const dialogue = DIALOGUE[evolutionStage] ?? DIALOGUE[0];
+      const dialogue = getDialogue(currentSpecies, evolutionStage);
       setCurrentLine(dialogue.triggers.firstUpgrade);
       useGameStore.getState().markFirstUpgradeSeen();
     }
     prevHasUpgradesRef.current = hasUpgrades;
-  }, [upgradeOwned, hasSeenFirstUpgrade, evolutionStage]);
+  }, [currentSpecies, upgradeOwned, hasSeenFirstUpgrade, evolutionStage]);
 
   return currentLine;
 }

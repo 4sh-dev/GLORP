@@ -1,13 +1,15 @@
-import { Button, Stack, Text } from "@mantine/core";
+import { Button, Group, Stack, Text } from "@mantine/core";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ASCII_ART } from "../data/asciiArt";
+import { getAsciiArt } from "../data/asciiArt";
 import { STAGES } from "../data/stages";
 import { getClickMood } from "../engine/moodEngine";
+import { canRebirth, getNextSpecies } from "../engine/rebirthEngine";
 import { useClickParticles } from "../hooks/useClickParticles";
 import { useDialogue } from "../hooks/useDialogue";
 import { useReducedMotion } from "../hooks/useReducedMotion";
 import { useGameStore } from "../store";
 import { FloatingParticles } from "./FloatingParticles";
+import { RebirthModal } from "./RebirthModal";
 import { SpeechBubble } from "./SpeechBubble";
 
 const MOOD_LABELS: Record<string, string> = {
@@ -24,8 +26,17 @@ export function PetDisplay() {
   const clickFeed = useGameStore((s) => s.clickFeed);
   const mood = useGameStore((s) => s.mood);
   const setMood = useGameStore((s) => s.setMood);
-  const art = ASCII_ART[evolutionStage] ?? ASCII_ART[0];
+  const currentSpecies = useGameStore((s) => s.currentSpecies);
+  const wisdomTokens = useGameStore((s) => s.wisdomTokens);
+  const totalTdEarned = useGameStore((s) => s.totalTdEarned);
+  const performRebirth = useGameStore((s) => s.performRebirth);
+
+  const art = getAsciiArt(currentSpecies, evolutionStage);
   const stageMeta = STAGES[evolutionStage] ?? STAGES[0];
+  const rebirthAvailable = canRebirth(evolutionStage);
+  const nextSpecies = getNextSpecies(currentSpecies);
+
+  const [rebirthModalOpen, setRebirthModalOpen] = useState(false);
 
   const dialogueLine = useDialogue();
   const [isFlashing, setIsFlashing] = useState(false);
@@ -84,7 +95,7 @@ export function PetDisplay() {
         </Text>
         <div
           role="img"
-          aria-label={`GLORP pet stage ${evolutionStage}: ${stageMeta.name}`}
+          aria-label={`${currentSpecies} pet stage ${evolutionStage}: ${stageMeta.name}`}
           onClick={handlePetClick}
           onKeyDown={(e) => {
             if (e.key === "Enter" || e.key === " ") handlePetClick();
@@ -106,16 +117,40 @@ export function PetDisplay() {
         >
           {art}
         </div>
-        <Button
-          size="lg"
-          variant="outline"
-          color="green"
-          onClick={handleFeed}
-          style={{ fontFamily: "monospace" }}
-        >
-          [ FEED GLORP ]
-        </Button>
+        <Group gap="sm">
+          <Button
+            size="lg"
+            variant="outline"
+            color="green"
+            onClick={handleFeed}
+            style={{ fontFamily: "monospace" }}
+          >
+            [ FEED {currentSpecies} ]
+          </Button>
+          {rebirthAvailable && (
+            <Button
+              size="lg"
+              variant="outline"
+              color="yellow"
+              onClick={() => setRebirthModalOpen(true)}
+              style={{ fontFamily: "monospace" }}
+            >
+              [ REBIRTH ]
+            </Button>
+          )}
+        </Group>
       </Stack>
+      <RebirthModal
+        opened={rebirthModalOpen}
+        onClose={() => setRebirthModalOpen(false)}
+        onConfirm={() => {
+          performRebirth();
+          setRebirthModalOpen(false);
+        }}
+        totalTdEarned={totalTdEarned}
+        currentWisdomTokens={wisdomTokens}
+        nextSpecies={nextSpecies}
+      />
     </div>
   );
 }

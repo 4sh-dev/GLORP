@@ -2,6 +2,7 @@ export { FloatingParticles } from "./FloatingParticles";
 export { GameLayout } from "./GameLayout";
 export { OfflineProgressModal } from "./OfflineProgressModal";
 export { PetDisplay } from "./PetDisplay";
+export { RebirthModal } from "./RebirthModal";
 export { SpeechBubble } from "./SpeechBubble";
 export { StatsBar } from "./StatsBar";
 export { UpgradesPanel } from "./UpgradesPanel";
