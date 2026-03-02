@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { act, renderHook } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { DIALOGUE } from "../data/dialogue";
+import { getDialogue } from "../data/dialogue";
 import { initialGameState, useGameStore } from "../store";
 import { useDialogue } from "./useDialogue";
 
@@ -14,7 +14,8 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-const allIdleTexts = (stage: number) => DIALOGUE[stage].idle.map((l) => l.text);
+const allIdleTexts = (stage: number) =>
+  getDialogue("GLORP", stage).idle.map((l) => l.text);
 
 describe("useDialogue", () => {
   it("returns a string from stage 0 idle lines initially", () => {
@@ -124,8 +125,8 @@ describe("useDialogue", () => {
     useGameStore.setState({ mood: "Happy", moodChangedAt: Date.now() });
     const { result } = renderHook(() => useDialogue());
 
-    const happyTexts = DIALOGUE[0].idle
-      .filter((l) => l.moods?.includes("Happy"))
+    const happyTexts = getDialogue("GLORP", 0)
+      .idle.filter((l) => l.moods?.includes("Happy"))
       .map((l) => l.text);
 
     // Advance timer multiple times — all rotated lines should be mood-filtered

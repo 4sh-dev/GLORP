@@ -1,8 +1,14 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+import type { Species } from "../data/species";
 import { UPGRADES } from "../data/upgrades";
 import { getEvolutionStage } from "../engine/evolutionEngine";
 import type { Mood } from "../engine/moodEngine";
+import {
+  canRebirth,
+  computeWisdomTokens,
+  getNextSpecies,
+} from "../engine/rebirthEngine";
 import { getUpgradeCost } from "../engine/upgradeEngine";
 
 interface GameState {
@@ -16,6 +22,11 @@ interface GameState {
   hasSeenFirstUpgrade: boolean;
   mood: Mood;
   moodChangedAt: number;
+  // Rebirth state — persists across rebirths
+  wisdomTokens: number;
+  rebirthCount: number;
+  currentSpecies: Species;
+  unlockedSpecies: Species[];
 }
 
 interface GameActions {
@@ -26,6 +37,7 @@ interface GameActions {
   markFirstUpgradeSeen: () => void;
   setMood: (mood: Mood) => void;
   updateLastSaved: () => void;
+  performRebirth: () => void;
 }
 
 export type GameStore = GameState & GameActions;
@@ -41,6 +53,10 @@ export const initialGameState: GameState = {
   hasSeenFirstUpgrade: false,
   mood: "Neutral",
   moodChangedAt: 0,
+  wisdomTokens: 0,
+  rebirthCount: 0,
+  currentSpecies: "GLORP",
+  unlockedSpecies: ["GLORP"],
 };
 
 export const useGameStore = create<GameStore>()(
@@ -90,6 +106,36 @@ export const useGameStore = create<GameStore>()(
       markFirstUpgradeSeen: () => set({ hasSeenFirstUpgrade: true }),
       setMood: (mood) => set({ mood, moodChangedAt: Date.now() }),
       updateLastSaved: () => set({ lastSaved: Date.now() }),
+      performRebirth: () =>
+        set((state) => {
+          if (!canRebirth(state.evolutionStage)) return state;
+
+          const earned = computeWisdomTokens(state.totalTdEarned);
+          const newWisdomTokens = state.wisdomTokens + earned;
+          const nextSpecies = getNextSpecies(state.currentSpecies);
+          const newUnlocked = state.unlockedSpecies.includes(nextSpecies)
+            ? state.unlockedSpecies
+            : [...state.unlockedSpecies, nextSpecies];
+
+          return {
+            // Reset progression
+            trainingData: 0,
+            totalClicks: 0,
+            totalTdEarned: 0,
+            evolutionStage: 0,
+            upgradeOwned: {},
+            mood: "Neutral" as Mood,
+            moodChangedAt: Date.now(),
+            hasSeenFirstEvolution: false,
+            hasSeenFirstUpgrade: false,
+            lastSaved: Date.now(),
+            // Persist rebirth rewards
+            wisdomTokens: newWisdomTokens,
+            rebirthCount: state.rebirthCount + 1,
+            currentSpecies: nextSpecies,
+            unlockedSpecies: newUnlocked,
+          };
+        }),
     }),
     {
       name: "glorp-game-state",

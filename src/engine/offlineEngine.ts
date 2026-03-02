@@ -10,6 +10,7 @@ interface OfflineState {
   mood: Mood;
   moodChangedAt: number;
   evolutionStage: number;
+  wisdomTokens?: number;
 }
 
 export interface OfflineProgressResult {
