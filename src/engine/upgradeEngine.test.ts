@@ -10,6 +10,7 @@ const mockUpgrade: Upgrade = {
   baseTdPerSecond: 1.5,
   tier: "garage-lab",
   icon: "🧪",
+  unlockStage: 0,
 };
 
 const mockUpgrade2: Upgrade = {
@@ -20,6 +21,7 @@ const mockUpgrade2: Upgrade = {
   baseTdPerSecond: 5,
   tier: "startup",
   icon: "🔬",
+  unlockStage: 0,
 };
 
 describe("getUpgradeCost", () => {
