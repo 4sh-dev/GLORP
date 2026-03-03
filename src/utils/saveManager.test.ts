@@ -31,6 +31,7 @@ const validSave: GameState = {
   clickUpgradesPurchased: [],
   comboCount: 0,
   lastClickTime: 0,
+  crossedMilestones: [],
 };
 
 beforeEach(() => {
