@@ -2,11 +2,13 @@ import { Badge, Button, Card, Group, Text } from "@mantine/core";
 import { notifications } from "@mantine/notifications";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { MILESTONE_THRESHOLDS } from "../../data/milestones";
+import { SYNERGIES } from "../../data/synergies";
 import type { Upgrade } from "../../data/upgrades";
 import {
   getMilestoneLevel,
   getMilestoneMultiplier,
 } from "../../engine/milestoneEngine";
+import { getSynergyMultiplier } from "../../engine/synergyEngine";
 import { getBulkCost, getMaxAffordable } from "../../engine/upgradeEngine";
 import { useReducedMotion } from "../../hooks/useReducedMotion";
 import type { BuyMode } from "../../store/settingsStore";
@@ -15,6 +17,7 @@ import { formatNumber } from "../../utils/formatNumber";
 interface UpgradeCardProps {
   upgrade: Upgrade;
   owned: number;
+  allOwned?: Record<string, number>;
   trainingData: number;
   buyMode: BuyMode;
   onPurchase: (id: string, count: number) => void;
@@ -23,6 +26,7 @@ interface UpgradeCardProps {
 export function UpgradeCard({
   upgrade,
   owned,
+  allOwned = {},
   trainingData,
   buyMode,
   onPurchase,
@@ -37,6 +41,7 @@ export function UpgradeCard({
   const milestoneLevel = getMilestoneLevel(owned);
   const milestoneMultiplier = getMilestoneMultiplier(owned);
   const nextThreshold = MILESTONE_THRESHOLDS[milestoneLevel];
+  const synergyMultiplier = getSynergyMultiplier(upgrade.id, allOwned);
 
   const [isGlowing, setIsGlowing] = useState(false);
   const [isMilestoneGlowing, setIsMilestoneGlowing] = useState(false);
@@ -46,10 +51,12 @@ export function UpgradeCard({
   const prevOwnedRef = useRef(owned);
   const prefersReduced = useReducedMotion();
 
-  // Detect milestone crossing and fire celebration
+  // Detect milestone crossing and synergy unlock; fire celebrations.
   useEffect(() => {
-    const prevLevel = getMilestoneLevel(prevOwnedRef.current);
+    const prev = prevOwnedRef.current;
+    const prevLevel = getMilestoneLevel(prev);
     const newLevel = getMilestoneLevel(owned);
+
     if (newLevel > prevLevel) {
       const threshold = MILESTONE_THRESHOLDS[newLevel - 1];
       notifications.show({
@@ -68,8 +75,25 @@ export function UpgradeCard({
         );
       }
     }
+
+    // Check synergy unlock (this generator is the source)
+    for (const synergy of SYNERGIES) {
+      if (
+        synergy.sourceId === upgrade.id &&
+        prev < synergy.threshold &&
+        owned >= synergy.threshold
+      ) {
+        notifications.show({
+          title: "⚡ Synergy unlocked!",
+          message: synergy.description,
+          color: "cyan",
+          autoClose: 5000,
+        });
+      }
+    }
+
     prevOwnedRef.current = owned;
-  }, [owned, upgrade.name, prefersReduced]);
+  }, [owned, upgrade.name, upgrade.id, prefersReduced]);
 
   const handlePurchase = useCallback(() => {
     onPurchase(upgrade.id, count);
@@ -88,6 +112,8 @@ export function UpgradeCard({
       : `${formatNumber(cost)} TD`;
 
   const isAnimating = isGlowing || isMilestoneGlowing;
+  const effectiveTdPerSecond =
+    upgrade.baseTdPerSecond * milestoneMultiplier * synergyMultiplier;
 
   return (
     <Card
@@ -139,11 +165,16 @@ export function UpgradeCard({
       <Group justify="space-between" align="center">
         <Group gap={4} align="center">
           <Text size="xs" ff="monospace" c="green">
-            +{formatNumber(upgrade.baseTdPerSecond * milestoneMultiplier)} TD/s
+            +{formatNumber(effectiveTdPerSecond)} TD/s
           </Text>
           {milestoneMultiplier > 1 && (
             <Badge size="xs" variant="light" color="yellow">
               ×{milestoneMultiplier}
+            </Badge>
+          )}
+          {synergyMultiplier > 1 && (
+            <Badge size="xs" variant="light" color="cyan">
+              ⚡×{synergyMultiplier}
             </Badge>
           )}
         </Group>

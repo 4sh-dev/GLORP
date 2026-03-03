@@ -1,6 +1,7 @@
 import type { Booster } from "../data/boosters";
 import type { Upgrade } from "../data/upgrades";
 import { getMilestoneMultiplier } from "./milestoneEngine";
+import { getSynergyMultiplier } from "./synergyEngine";
 
 export const COST_MULTIPLIER = 1.15;
 
@@ -59,7 +60,7 @@ export function computeBoosterMultiplier(
 
 /**
  * Returns the total TD/s from owned upgrades, applying per-generator milestone
- * multipliers, then the global wisdom and booster multipliers.
+ * and synergy multipliers, then the global wisdom and booster multipliers.
  * Defaults to no bonus (×1) for wisdom and booster multipliers.
  */
 export function getTotalTdPerSecond(
@@ -72,7 +73,9 @@ export function getTotalTdPerSecond(
   for (const upgrade of upgrades) {
     const count = owned[upgrade.id] ?? 0;
     const milestoneMultiplier = getMilestoneMultiplier(count);
-    total += upgrade.baseTdPerSecond * count * milestoneMultiplier;
+    const synergyMultiplier = getSynergyMultiplier(upgrade.id, owned);
+    total +=
+      upgrade.baseTdPerSecond * count * milestoneMultiplier * synergyMultiplier;
   }
   return total * wisdomMultiplier * boosterMultiplier;
 }

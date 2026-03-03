@@ -148,6 +148,7 @@ export function UpgradesPanel() {
                     key={upgrade.id}
                     upgrade={upgrade}
                     owned={upgradeOwned[upgrade.id] ?? 0}
+                    allOwned={upgradeOwned}
                     trainingData={trainingData}
                     buyMode={buyMode}
                     onPurchase={purchaseBulkUpgrade}
