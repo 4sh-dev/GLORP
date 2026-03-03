@@ -251,16 +251,19 @@ export function PetDisplay() {
             </Button>
           )}
         </Group>
-        {displayCombo >= COMBO_THRESHOLD && (
-          <Badge
-            size="lg"
-            variant="light"
-            color="yellow"
-            style={{ fontFamily: "monospace" }}
-          >
-            COMBO x{displayCombo} (1.5x)
-          </Badge>
-        )}
+        <Badge
+          size="lg"
+          variant="light"
+          color="yellow"
+          style={{
+            fontFamily: "monospace",
+            visibility:
+              displayCombo >= COMBO_THRESHOLD ? "visible" : "hidden",
+          }}
+          aria-hidden={displayCombo < COMBO_THRESHOLD}
+        >
+          COMBO x{displayCombo} (1.5x)
+        </Badge>
       </Stack>
       <RebirthModal
         opened={rebirthModalOpen}
