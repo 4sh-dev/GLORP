@@ -25,10 +25,12 @@ export function SettingsPanel({
 }) {
   const crtEnabled = useSettingsStore((s) => s.crtEnabled);
   const animationsDisabled = useSettingsStore((s) => s.animationsDisabled);
+  const numberFormat = useSettingsStore((s) => s.numberFormat);
   const setCrtEnabled = useSettingsStore((s) => s.setCrtEnabled);
   const setAnimationsDisabled = useSettingsStore(
     (s) => s.setAnimationsDisabled,
   );
+  const setNumberFormat = useSettingsStore((s) => s.setNumberFormat);
 
   const [resetStage, setResetStage] = useState(0);
   const [importError, setImportError] = useState<string | null>(null);
@@ -84,6 +86,15 @@ export function SettingsPanel({
           description="Turn off all animations and particle effects"
           checked={animationsDisabled}
           onChange={(e) => setAnimationsDisabled(e.currentTarget.checked)}
+          styles={{ label: { fontFamily: "monospace" } }}
+        />
+        <Switch
+          label="Full Number Display"
+          description="Show full numbers (1,234,567) instead of compact (1.23M)"
+          checked={numberFormat === "full"}
+          onChange={(e) =>
+            setNumberFormat(e.currentTarget.checked ? "full" : "compact")
+          }
           styles={{ label: { fontFamily: "monospace" } }}
         />
 

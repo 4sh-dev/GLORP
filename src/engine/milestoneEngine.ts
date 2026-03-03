@@ -3,13 +3,7 @@
  * Sorted ascending so we can iterate in order.
  */
 export const MILESTONE_THRESHOLDS = [
-  1_000,
-  10_000,
-  100_000,
-  1_000_000,
-  10_000_000,
-  100_000_000,
-  1_000_000_000,
+  1_000, 10_000, 100_000, 1_000_000, 10_000_000, 100_000_000, 1_000_000_000,
   1_000_000_000_000,
 ] as const satisfies readonly number[];
 

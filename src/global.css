@@ -90,6 +90,18 @@ body {
   }
 }
 
+@keyframes rate-boost-fade {
+  0% {
+    opacity: 1;
+  }
+  70% {
+    opacity: 0.8;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
 @keyframes milestone-flash {
   0% {
     opacity: 0;

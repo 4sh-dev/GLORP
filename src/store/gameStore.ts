@@ -39,7 +39,7 @@ export interface GameState {
   easterEggsUnlocked: string[];
   // Lifetime stats — persists across rebirths
   totalTimePlayed: number;
-  // Milestone celebrations — persists across rebirths
+  // Milestone celebrations — resets on rebirth
   crossedMilestones: number[];
 }
 
@@ -237,6 +237,7 @@ export const useGameStore = create<GameStore>()(
             clickUpgradesPurchased: [],
             comboCount: 0,
             lastClickTime: 0,
+            crossedMilestones: [],
             // Persist rebirth rewards
             wisdomTokens: newWisdomTokens,
             rebirthCount: state.rebirthCount + 1,

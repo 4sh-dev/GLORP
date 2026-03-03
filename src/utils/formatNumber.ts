@@ -31,3 +31,19 @@ export function formatNumber(n: number): string {
 
   return Math.floor(n).toString();
 }
+
+/**
+ * Format a number with full comma-separated digits (e.g. "1,234,567,890").
+ * Used when the player selects "Full" number display mode.
+ */
+export function formatNumberFull(n: number): string {
+  if (n < 0) {
+    return `-${formatNumberFull(-n)}`;
+  }
+
+  if (n > 0 && n < 1) {
+    return n.toFixed(2);
+  }
+
+  return Math.floor(n).toLocaleString("en-US");
+}

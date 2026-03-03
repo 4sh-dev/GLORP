@@ -294,4 +294,24 @@ describe("gameStore", () => {
       expect(useGameStore.getState().evolutionStage).toBe(1);
     });
   });
+
+  describe("crossedMilestones", () => {
+    it("appends milestones via crossMilestones", () => {
+      useGameStore.getState().crossMilestones([1_000, 10_000]);
+      expect(useGameStore.getState().crossedMilestones).toEqual([
+        1_000, 10_000,
+      ]);
+    });
+
+    it("resets crossedMilestones on rebirth", () => {
+      // Set up a state eligible for rebirth (stage 5) with some milestones
+      useGameStore.setState({
+        totalTdEarned: 1_000_000,
+        evolutionStage: 5,
+        crossedMilestones: [1_000, 10_000, 100_000, 1_000_000],
+      });
+      useGameStore.getState().performRebirth();
+      expect(useGameStore.getState().crossedMilestones).toEqual([]);
+    });
+  });
 });
