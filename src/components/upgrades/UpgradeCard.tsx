@@ -1,10 +1,7 @@
 import { Badge, Button, Card, Group, Text } from "@mantine/core";
 import { useCallback, useRef, useState } from "react";
 import type { Upgrade } from "../../data/upgrades";
-import {
-  getBulkCost,
-  getMaxAffordable,
-} from "../../engine/upgradeEngine";
+import { getBulkCost, getMaxAffordable } from "../../engine/upgradeEngine";
 import { useReducedMotion } from "../../hooks/useReducedMotion";
 import type { BuyMode } from "../../store/settingsStore";
 import { formatNumber } from "../../utils/formatNumber";
