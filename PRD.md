@@ -19,7 +19,7 @@ This is a public demo project. The game itself is fun and standalone — but the
 ## Tech Stack
 
 - **Framework**: Vite + React + TypeScript
-- **Styling**: Mantine v7 (component library + theming)
+- **Styling**: Mantine v8 (component library + theming)
 - **State**: Zustand (lightweight, perfect for game state)
 - **Deployment**: GitHub Pages (build and deploy via GitHub Actions)
 - **No backend** — all state lives in localStorage. This is a pure client-side game.
