@@ -224,6 +224,64 @@ describe("getTotalTdPerSecond", () => {
       37.5,
     );
   });
+
+  it("applies no synergy for custom IDs not in the synergy map", () => {
+    // test-upgrade and test-upgrade-2 are not synergy sources or targets
+    const owned = { "test-upgrade": 50, "test-upgrade-2": 50 };
+    // milestone at 50 → ×3; no synergy; 50*1.5*3 + 50*5*3 = 225 + 750 = 975
+    expect(getTotalTdPerSecond([mockUpgrade, mockUpgrade2], owned)).toBeCloseTo(
+      975,
+    );
+  });
+});
+
+describe("getTotalTdPerSecond — synergy integration", () => {
+  const neuralNotepad: Upgrade = {
+    id: "neural-notepad",
+    name: "Neural Notepad",
+    description: "Test",
+    baseCost: 10,
+    baseTdPerSecond: 1,
+    tier: "garage-lab",
+    icon: "📝",
+    unlockStage: 0,
+  };
+
+  const patternAntenna: Upgrade = {
+    id: "pattern-antenna",
+    name: "Pattern Antenna",
+    description: "Test",
+    baseCost: 250,
+    baseTdPerSecond: 2,
+    tier: "garage-lab",
+    icon: "📡",
+    unlockStage: 0,
+  };
+
+  it("applies no synergy when source is below threshold", () => {
+    const owned = { "neural-notepad": 49, "pattern-antenna": 5 };
+    // neural-notepad: 49 owned → milestone ×2 (10 and 25 crossed), no synergy → 49*1*2=98
+    // pattern-antenna: 5 owned → milestone ×1, no synergy → 5*2*1=10
+    expect(
+      getTotalTdPerSecond([neuralNotepad, patternAntenna], owned),
+    ).toBeCloseTo(108);
+  });
+
+  it("applies +100% synergy to garage-lab generators when neural-notepad reaches 50", () => {
+    const owned = { "neural-notepad": 50, "pattern-antenna": 5 };
+    // neural-notepad: 50 owned → milestone ×3, synergy ×2 (target of itself) → 50*1*3*2=300
+    // pattern-antenna: 5 owned → milestone ×1, synergy ×2 → 5*2*1*2=20
+    expect(
+      getTotalTdPerSecond([neuralNotepad, patternAntenna], owned),
+    ).toBeCloseTo(320);
+  });
+
+  it("synergy multiplier stacks multiplicatively with milestone", () => {
+    // neural-notepad at 50: milestone ×3, synergy (self) ×2 → effective rate 1*3*2=6 per unit
+    const owned = { "neural-notepad": 50 };
+    // 50 * 1 * 3 * 2 = 300
+    expect(getTotalTdPerSecond([neuralNotepad], owned)).toBeCloseTo(300);
+  });
 });
 
 const mockBooster1: Booster = {
