@@ -1,4 +1,12 @@
-import { Button, Divider, Group, ScrollArea, Stack, Text, Title } from "@mantine/core";
+import {
+  Button,
+  Divider,
+  Group,
+  ScrollArea,
+  Stack,
+  Text,
+  Title,
+} from "@mantine/core";
 import { useEffect } from "react";
 import { CLICK_UPGRADES } from "../data/clickUpgrades";
 import type { Upgrade } from "../data/upgrades";
