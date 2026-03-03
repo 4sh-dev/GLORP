@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatNumber } from "./formatNumber";
+import { formatNumber, formatNumberFull } from "./formatNumber";
 
 describe("formatNumber", () => {
   describe("values below 1,000", () => {
@@ -117,5 +117,47 @@ describe("formatNumber", () => {
     it("formats -0 as 0", () => {
       expect(formatNumber(-0)).toBe("0");
     });
+  });
+});
+
+describe("formatNumberFull", () => {
+  it("formats 0", () => {
+    expect(formatNumberFull(0)).toBe("0");
+  });
+
+  it("formats small integers without commas", () => {
+    expect(formatNumberFull(42)).toBe("42");
+    expect(formatNumberFull(999)).toBe("999");
+  });
+
+  it("formats thousands with commas", () => {
+    expect(formatNumberFull(1_000)).toBe("1,000");
+    expect(formatNumberFull(1_234)).toBe("1,234");
+    expect(formatNumberFull(999_999)).toBe("999,999");
+  });
+
+  it("formats millions with commas", () => {
+    expect(formatNumberFull(1_000_000)).toBe("1,000,000");
+    expect(formatNumberFull(1_234_567)).toBe("1,234,567");
+  });
+
+  it("formats billions with commas", () => {
+    expect(formatNumberFull(1_234_567_890)).toBe("1,234,567,890");
+  });
+
+  it("truncates decimals to integer", () => {
+    expect(formatNumberFull(1_234.56)).toBe("1,234");
+    expect(formatNumberFull(999.99)).toBe("999");
+  });
+
+  it("formats fractional values between 0 and 1 with 2 decimal places", () => {
+    expect(formatNumberFull(0.5)).toBe("0.50");
+    expect(formatNumberFull(0.01)).toBe("0.01");
+  });
+
+  it("formats negative values", () => {
+    expect(formatNumberFull(-42)).toBe("-42");
+    expect(formatNumberFull(-1_234)).toBe("-1,234");
+    expect(formatNumberFull(-1_000_000)).toBe("-1,000,000");
   });
 });

@@ -27,12 +27,8 @@ export function useClickParticles() {
       for (let i = 0; i < count; i++) {
         newParticles.push({
           id: nextId.current++,
-          x:
-            containerRect.width / 2 +
-            (Math.random() * spreadX * 2 - spreadX),
-          y:
-            containerRect.height / 2 +
-            (Math.random() * spreadY * 2 - spreadY),
+          x: containerRect.width / 2 + (Math.random() * spreadX * 2 - spreadX),
+          y: containerRect.height / 2 + (Math.random() * spreadY * 2 - spreadY),
         });
       }
 
@@ -49,12 +45,7 @@ export function useClickParticles() {
   /** Spawn 3–5 particles around the container centre (normal click). */
   const spawn = useCallback(
     (containerRect: DOMRect) => {
-      spawnParticles(
-        containerRect,
-        3 + Math.floor(Math.random() * 3),
-        20,
-        10,
-      );
+      spawnParticles(containerRect, 3 + Math.floor(Math.random() * 3), 20, 10);
     },
     [spawnParticles],
   );

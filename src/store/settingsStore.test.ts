@@ -10,6 +10,7 @@ describe("useSettingsStore", () => {
     const state = useSettingsStore.getState();
     expect(state.crtEnabled).toBe(false);
     expect(state.animationsDisabled).toBe(false);
+    expect(state.numberFormat).toBe("compact");
   });
 
   it("setCrtEnabled sets crtEnabled to true", () => {
@@ -42,5 +43,22 @@ describe("useSettingsStore", () => {
   it("setAnimationsDisabled does not affect crtEnabled", () => {
     useSettingsStore.getState().setAnimationsDisabled(true);
     expect(useSettingsStore.getState().crtEnabled).toBe(false);
+  });
+
+  it("setNumberFormat switches to full", () => {
+    useSettingsStore.getState().setNumberFormat("full");
+    expect(useSettingsStore.getState().numberFormat).toBe("full");
+  });
+
+  it("setNumberFormat switches back to compact", () => {
+    useSettingsStore.setState({ numberFormat: "full" });
+    useSettingsStore.getState().setNumberFormat("compact");
+    expect(useSettingsStore.getState().numberFormat).toBe("compact");
+  });
+
+  it("setNumberFormat does not affect other settings", () => {
+    useSettingsStore.getState().setNumberFormat("full");
+    expect(useSettingsStore.getState().crtEnabled).toBe(false);
+    expect(useSettingsStore.getState().animationsDisabled).toBe(false);
   });
 });

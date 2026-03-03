@@ -4,13 +4,7 @@ import { checkMilestones, MILESTONE_THRESHOLDS } from "./milestoneEngine";
 describe("MILESTONE_THRESHOLDS", () => {
   it("contains the expected thresholds in ascending order", () => {
     expect(MILESTONE_THRESHOLDS).toEqual([
-      1_000,
-      10_000,
-      100_000,
-      1_000_000,
-      10_000_000,
-      100_000_000,
-      1_000_000_000,
+      1_000, 10_000, 100_000, 1_000_000, 10_000_000, 100_000_000, 1_000_000_000,
       1_000_000_000_000,
     ]);
   });
@@ -45,9 +39,9 @@ describe("checkMilestones", () => {
   });
 
   it("detects the trillion threshold", () => {
-    expect(checkMilestones(999_999_999_999, 1_000_000_000_000, empty)).toEqual(
-      [1_000_000_000_000],
-    );
+    expect(checkMilestones(999_999_999_999, 1_000_000_000_000, empty)).toEqual([
+      1_000_000_000_000,
+    ]);
   });
 
   it("returns empty when prevTd exactly equals a threshold (already at it)", () => {
