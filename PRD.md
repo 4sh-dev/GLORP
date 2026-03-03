@@ -19,7 +19,7 @@ This is a public demo project. The game itself is fun and standalone — but the
 ## Tech Stack
 
 - **Framework**: Vite + React + TypeScript
-- **Styling**: Tailwind CSS
+- **Styling**: Mantine v7 (component library + theming)
 - **State**: Zustand (lightweight, perfect for game state)
 - **Deployment**: GitHub Pages (build and deploy via GitHub Actions)
 - **No backend** — all state lives in localStorage. This is a pure client-side game.
@@ -389,11 +389,184 @@ These phases guide how the PM should break down stories. Each phase should resul
 - Easter eggs and secret achievements
 - "Credits" achievement for reaching final form
 
+### Phase 8 — Game Depth Overhaul
+
+> Goal: Make the game feel like a *real* idle/clicker — less linear, more dopamine, deeper systems
+
+Phase 8 addresses five core problems identified from playtesting:
+
+1. **Numbers don't feel exciting** — TD counter updates once per second and compresses everything behind suffixes ("39.83B"). The thrill of big numbers growing fast is lost.
+2. **Too linear** — Every upgrade does the same thing (flat TD/s). No click power scaling, no multipliers, no synergies between systems. The game is just "buy bigger machine, repeat."
+3. **Generator costs explode too fast** — The 1.15x exponential is punishing without bulk-buy options or discount mechanics.
+4. **ASCII art is too simple** — Art ranges from 6 to 20 lines of basic characters. No color, no animation frames.
+5. **Rebirth bonus is overpowered** — At 481 Wisdom Tokens (5% each = 2405% bonus = 25x multiplier), subsequent runs become trivially fast. Prestige needs to be about *choices*, not just a passive multiplier.
+
+See detailed design for each sub-system below.
+
+---
+
+## Phase 8 — Detailed Design
+
+### 8.1 — Number Display & Game Feel
+
+**Problem:** The TD counter shows "39.83B" and ticks once per second. In a good idle game, you should *feel* the numbers climbing.
+
+**Changes:**
+
+- **Visual tick interpolation**: The game engine still ticks at 1Hz for calculations, but the *display* interpolates at 60fps using `requestAnimationFrame`. The counter smoothly counts up between actual ticks, creating a satisfying rolling-number effect.
+- **Extended number suffixes**: Add T (trillion), Qa (quadrillion), Qi (quintillion) to `formatNumber`. Current cap at "B" feels like endgame when it isn't.
+- **Milestone celebrations**: When TD crosses a major threshold (first 1K, 1M, 1B, 1T), show a brief celebration: screen flash, GLORP reacts, particle burst. These are one-time per run.
+- **Rate-of-change indicator**: Show a small arrow or sparkle next to TD/s when it increases (after buying an upgrade). Fades after 3 seconds.
+- **Number display option**: Add a setting toggle: "Compact" (1.23B) vs "Full" (1,234,567,890). Default to Compact.
+
+### 8.2 — Click Power System
+
+**Problem:** Clicking always gives exactly +1 TD regardless of stage, upgrades, or species. By mid-game, clicking is meaningless. The PRD described click multiplier upgrades, but they were never implemented.
+
+**Changes:**
+
+- **Click Power stat**: New `clickPower` field in game state. Base value: 1. Affected by upgrades and evolution.
+- **Click upgrades**: New upgrade category "Click Boosters" — these increase `clickPower` multiplicatively. Examples:
+  - "Better Dataset" — 2x click power (10 TD)
+  - "Stack Overflow" — 2x click power (1K TD)
+  - "Fine-Tuning Lab" — 3x click power (50K TD)
+  - "RLHF Department" — 5x click power (5M TD)
+  - "Synthetic Data Farm" — 10x click power (500M TD)
+- **Evolution click bonus**: Each evolution stage gives a passive +1x to click power. At Singularity, base click power is 6x before any upgrades.
+- **Click combo**: Rapid clicks (>3 per second) start a combo counter that gives a temporary 1.5x bonus. Combo decays after 2 seconds of no clicks. Visual feedback: combo counter appears briefly.
+- **Click particles scale with power**: More particles, bigger numbers floating up when click power is high.
+
+### 8.3 — Multiplier & Synergy System
+
+**Problem:** All 17 upgrades do one thing: add flat TD/s. There are no global multipliers, no synergies, no interesting choices. The PRD described "2x all auto-generation" and "100x everything" upgrades — none exist.
+
+**Changes:**
+
+#### Global Multiplier Upgrades
+
+Add a new upgrade category "Boosters" — one-time purchases (non-repeatable) that multiply all auto-generation:
+
+| Upgrade | Effect | Cost | Unlock |
+|---|---|---|---|
+| Series A Funding | 2x all auto-gen | 25K TD | Stage 1 |
+| Hype Train | 3x all auto-gen | 500K TD | Stage 2 |
+| Consciousness Clause | 5x all auto-gen | 50M TD | Stage 3 |
+| Dyson Sphere | 10x all auto-gen | 5B TD | Stage 4 |
+
+These stack multiplicatively: owning all four gives 2 × 3 × 5 × 10 = 300x total multiplier.
+
+#### Generator Milestone Bonuses
+
+Each generator (repeatable upgrade) gets milestone bonuses at ownership thresholds:
+
+| Owned | Bonus |
+|---|---|
+| 10 | +50% output for this generator |
+| 25 | +100% output (total 2x) |
+| 50 | +200% output (total 3x) + unlocks a synergy |
+| 100 | +500% output (total 6x) |
+
+The milestone bonuses are shown as badges on the upgrade card. This gives a reason to keep buying "old" generators instead of always chasing the newest one.
+
+#### Cross-Generator Synergies
+
+Reaching 50 owned on a generator unlocks a synergy that boosts another generator:
+
+| Generator at 50 | Synergy Effect |
+|---|---|
+| Neural Notepad | All Garage Lab generators +100% |
+| Data Hamster Wheel | Intern Algorithm output +200% |
+| GPU Toaster | Server Farm output +150% |
+| Server Farm | Data Center output +100% |
+| ML Cluster | Quantum Processor output +100% |
+| Quantum Processor | Mind Singularity output +50% |
+
+Synergies are displayed as connection lines in the upgrade panel (optional visual).
+
+### 8.4 — Prestige Shop & Wisdom Token Rebalance
+
+**Problem:** Wisdom Tokens provide a flat 5% per token passive bonus, resulting in a 25x multiplier at 481 tokens. This makes runs trivially fast and offers zero interesting choices.
+
+**Changes:**
+
+#### Wisdom Token Economy Rebalance
+
+- **Remove passive % bonus entirely**. Wisdom Tokens become a *spendable* prestige currency.
+- **Token formula change**: `wisdomTokens = floor(sqrt(totalTdEarned / 100_000))` (was 1M divisor). This gives more tokens per run so the shop feels usable.
+- **Tokens are spent, not accumulated passively**. Each purchase costs tokens permanently.
+
+#### Prestige Shop
+
+A new UI panel (accessible after first rebirth) where Wisdom Tokens are spent on permanent upgrades:
+
+| Upgrade | Cost | Effect | Max Level |
+|---|---|---|---|
+| Quick Start | 5 WT | Start each run with 1K / 10K / 100K TD | 3 |
+| Auto-Buy | 10 WT | Automatically buys cheapest affordable generator | 1 |
+| Click Mastery | 3 WT | +1x base click power per level | 10 |
+| Generator Discount | 8 WT | Reduce cost multiplier from 1.15x to 1.14x / 1.13x / 1.12x | 3 |
+| Idle Boost | 5 WT | +25% all auto-gen per level | 5 |
+| Offline Efficiency | 5 WT | Increase offline efficiency from 50% to 60% / 70% / 80% | 3 |
+| Evolution Accelerator | 15 WT | Evolution thresholds reduced by 10% per level | 3 |
+| Species Memory | 20 WT | Keep one upgrade tier's ownership count across rebirth | 1 per tier |
+| Token Magnet | 10 WT | +20% Wisdom Tokens earned on rebirth per level | 5 |
+| Unlock All Species | 50 WT | Unlock ability to choose any species on rebirth | 1 |
+
+Total sink: hundreds of tokens needed to max everything, giving purpose to many rebirths.
+
+#### Species Mechanical Bonuses
+
+Currently species are purely cosmetic. Each should have a unique passive:
+
+| Species | Passive Bonus |
+|---|---|
+| GLORP | None (balanced baseline) |
+| ZAPPY | +25% auto-gen speed |
+| CHONK | +50% click power |
+| WISP | +25% Wisdom Tokens on rebirth |
+| MEGA-GLORP | +10% to everything |
+
+### 8.5 — Cost Scaling & Quality of Life
+
+**Problem:** The 1.15x exponential means the 20th copy of a generator costs 16x the base. Without bulk-buy or discount mechanics, buying feels tedious and punishing.
+
+**Changes:**
+
+- **Bulk buy buttons**: Add "Buy 1 / 10 / 100 / Max" toggle for generators. Shows total cost for the batch. Default: Buy 1.
+- **Buy Max calculates efficiently**: Use the geometric series formula to compute max affordable count in O(1), not a loop.
+- **Prestige-based cost reduction**: The "Generator Discount" prestige upgrade (see 8.4) reduces the exponent from 1.15 to as low as 1.12.
+- **Sale events** (stretch): Random 30-second sales where one random tier is 50% off. GLORP announces it: "FLASH SALE! Everything in the Garage Lab is half off!"
+
+### 8.6 — ASCII Art Overhaul
+
+**Problem:** Current art is 6-20 lines of basic characters (`O`, `~`, `*`). It looks like placeholder art.
+
+**Changes:**
+
+- **Larger art**: Minimum 10 lines for Stage 0, scaling to 25+ lines for Stage 5. More detail within each piece.
+- **Multiple animation frames**: Each stage gets 2-3 idle frames that rotate every 2 seconds (blinking, breathing, minor movements). The current single-frame display gets a frame cycling system.
+- **Color via CSS spans**: Key elements of the ASCII art get color classes: eyes glow green, electricity on ZAPPY is cyan, CHONK gets warm amber. Implemented as `<span className="ascii-eyes">O O</span>` within the pre-formatted block.
+- **Stage transition animation**: When evolving, show a brief "glitch" effect (rapid frame switching + screen shake) before revealing the new form.
+- **Art quality pass**: Commission or generate higher-quality ASCII art for all 30 species/stage combinations. Each piece should be recognizable and charming. Reference style: classic ASCII art bulletin boards, not minimal line drawings.
+
+### 8.7 — New Achievements
+
+Add achievements that celebrate the new systems:
+
+- **"Click Storm"** — Reach a 10x click combo
+- **"Synergy!"** — Unlock your first cross-generator synergy
+- **"Bulk Buyer"** — Buy 100 of any single generator
+- **"Window Shopper"** — Open the Prestige Shop for the first time
+- **"Fully Loaded"** — Purchase every Prestige Shop upgrade at max level
+- **"Multiplied"** — Own all 4 global multiplier upgrades (300x!)
+- **"Flash Sale Hunter"** — Buy during a sale event
+- **"Species Collector"** — Play as all 5 species
+
 ## Labels for Story Management
 
 The PM should use these GitHub labels:
 
-- `phase-1` through `phase-7` — which phase the story belongs to
+- `phase-1` through `phase-8` — which phase the story belongs to
 - `ready` — story is ready for the dev to pick up
 - `in-progress` — dev is working on it
 - `review` — PR is ready for code review
