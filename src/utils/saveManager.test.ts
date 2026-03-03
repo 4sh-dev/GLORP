@@ -28,6 +28,9 @@ const validSave: GameState = {
   unlockedAchievements: ["first-click"],
   easterEggsUnlocked: [],
   totalTimePlayed: 0,
+  clickUpgradesPurchased: [],
+  comboCount: 0,
+  lastClickTime: 0,
 };
 
 beforeEach(() => {

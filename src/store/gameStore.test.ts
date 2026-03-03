@@ -54,10 +54,17 @@ describe("gameStore", () => {
       expect(lastSaved).toBeLessThanOrEqual(after);
     });
 
-    it("accumulates across multiple clicks", () => {
+    it("accumulates across multiple clicks (spaced to avoid combo)", () => {
+      // Space clicks beyond combo decay to test pure accumulation
+      let now = 1000;
+      vi.spyOn(Date, "now").mockImplementation(() => now);
+
       useGameStore.getState().clickFeed();
+      now += 3000; // 3s gap — beyond COMBO_DECAY_MS
       useGameStore.getState().clickFeed();
+      now += 3000;
       useGameStore.getState().clickFeed();
+
       const state = useGameStore.getState();
       expect(state.trainingData).toBe(3);
       expect(state.totalClicks).toBe(3);
@@ -103,7 +110,12 @@ describe("gameStore", () => {
     });
 
     it("combines correctly with clickFeed", () => {
+      // Space clicks to avoid combo
+      let now = 1000;
+      vi.spyOn(Date, "now").mockImplementation(() => now);
+
       useGameStore.getState().clickFeed();
+      now += 3000;
       useGameStore.getState().clickFeed();
       useGameStore.getState().addTrainingData(100);
       const state = useGameStore.getState();
