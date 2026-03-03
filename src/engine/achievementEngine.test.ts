@@ -20,6 +20,9 @@ const baseState: GameState = {
   unlockedAchievements: [],
   easterEggsUnlocked: [],
   totalTimePlayed: 0,
+  clickUpgradesPurchased: [],
+  comboCount: 0,
+  lastClickTime: 0,
 };
 
 describe("checkAchievements", () => {
