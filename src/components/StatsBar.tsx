@@ -28,24 +28,25 @@ export function StatsBar() {
   const prestigeUpgrades = useGameStore((s) => s.prestigeUpgrades);
   const currentSpecies = useGameStore((s) => s.currentSpecies);
   const rebirthCount = useGameStore((s) => s.rebirthCount);
+  const activeChallengeId = useGameStore((s) => s.activeChallengeId);
   const clickUpgradesPurchased = useGameStore((s) => s.clickUpgradesPurchased);
   const comboCount = useGameStore((s) => s.comboCount);
   const lastClickTime = useGameStore((s) => s.lastClickTime);
-  const idleBoost = getIdleBoostMultiplier(prestigeUpgrades["idle-boost"] ?? 0);
+  const ep = activeChallengeId === "no-prestige" ? {} : prestigeUpgrades;
+  const idleBoost = getIdleBoostMultiplier(ep["idle-boost"] ?? 0);
   const speciesBonus = getSpeciesBonus(currentSpecies);
   const boosterMultiplier = computeBoosterMultiplier(
     BOOSTERS,
     boostersPurchased,
   );
-  const tdPerSecond = getTotalTdPerSecond(
+  const rawTdPerSecond = getTotalTdPerSecond(
     UPGRADES,
     upgradeOwned,
     idleBoost * speciesBonus.autoGen,
     boosterMultiplier,
   );
-  const clickMastery = getClickMasteryBonus(
-    prestigeUpgrades["click-mastery"] ?? 0,
-  );
+  const tdPerSecond = activeChallengeId === "click-only" ? 0 : rawTdPerSecond;
+  const clickMastery = getClickMasteryBonus(ep["click-mastery"] ?? 0);
   const effectiveClickPower = computeClickPower(
     { clickUpgradesPurchased, comboCount, lastClickTime },
     CLICK_UPGRADES,

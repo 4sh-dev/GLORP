@@ -73,9 +73,13 @@ export function useGameLoop() {
       const state = useGameStore.getState();
       const prevTdEarned = state.totalTdEarned;
 
+      // No-prestige challenge: zero out all prestige levels
+      const isNoPrest = state.activeChallengeId === "no-prestige";
+      const effectivePrestige = isNoPrest ? {} : state.prestigeUpgrades;
+
       // Compute prestige multipliers for the tick engine
       const idleBoost = getIdleBoostMultiplier(
-        state.prestigeUpgrades["idle-boost"] ?? 0,
+        effectivePrestige["idle-boost"] ?? 0,
       );
       const speciesAutoGen = getSpeciesBonus(state.currentSpecies).autoGen;
 
@@ -146,11 +150,11 @@ export function useGameLoop() {
       }
 
       // Auto-Buy: purchase cheapest affordable generator once per tick
-      const autoBuyLevel = state.prestigeUpgrades["auto-buy"] ?? 0;
+      const autoBuyLevel = effectivePrestige["auto-buy"] ?? 0;
       if (autoBuyLevel > 0) {
         const current = useGameStore.getState();
         const costMult = getGeneratorCostMultiplier(
-          current.prestigeUpgrades["generator-discount"] ?? 0,
+          effectivePrestige["generator-discount"] ?? 0,
         );
         let cheapest: { id: string; cost: number } | null = null;
         for (const u of UPGRADES) {

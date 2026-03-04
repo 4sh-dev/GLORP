@@ -11,6 +11,7 @@ interface TickState {
   boostersPurchased?: string[];
   idleBoostMultiplier?: number;
   speciesAutoGenMultiplier?: number;
+  activeChallengeId?: string | null;
 }
 
 interface TickResult {
@@ -23,6 +24,14 @@ export function computeTick(
   deltaSeconds: number,
   now: number,
 ): TickResult {
+  const decayed = getDecayedMood(state.mood, state.moodChangedAt, now);
+  const newMood = decayed !== state.mood ? decayed : null;
+
+  // Click-Only challenge: auto-generators produce no TD
+  if (state.activeChallengeId === "click-only") {
+    return { trainingDataDelta: 0, newMood };
+  }
+
   const globalMultiplier =
     (state.idleBoostMultiplier ?? 1) * (state.speciesAutoGenMultiplier ?? 1);
   const boosterMultiplier = computeBoosterMultiplier(
@@ -35,9 +44,6 @@ export function computeTick(
     globalMultiplier,
     boosterMultiplier,
   );
-
-  const decayed = getDecayedMood(state.mood, state.moodChangedAt, now);
-  const newMood = decayed !== state.mood ? decayed : null;
 
   return {
     trainingDataDelta: tdPerSecond * deltaSeconds,

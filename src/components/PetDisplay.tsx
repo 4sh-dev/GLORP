@@ -2,6 +2,7 @@ import { Badge, Button, Group, Stack, Text } from "@mantine/core";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { getAsciiFrames } from "../data/asciiArt";
 import { BOOSTERS } from "../data/boosters";
+import { CHALLENGES } from "../data/challenges";
 import { CLICK_UPGRADES } from "../data/clickUpgrades";
 import {
   getClickMasteryBonus,
@@ -60,6 +61,7 @@ export function PetDisplay() {
   const totalClicks = useGameStore((s) => s.totalClicks);
   const peakTdPerSecond = useGameStore((s) => s.peakTdPerSecond);
   const runStart = useGameStore((s) => s.runStart);
+  const activeChallengeId = useGameStore((s) => s.activeChallengeId);
   const upgradeOwned = useGameStore((s) => s.upgradeOwned);
   const boostersPurchased = useGameStore((s) => s.boostersPurchased);
 
@@ -114,11 +116,10 @@ export function PetDisplay() {
   // ────────────────────────────────────────────────────────────────────────
 
   // Compute current click power for display (without combo since it fluctuates)
-  const clickMastery = getClickMasteryBonus(
-    prestigeUpgrades["click-mastery"] ?? 0,
-  );
+  const ep = activeChallengeId === "no-prestige" ? {} : prestigeUpgrades;
+  const clickMastery = getClickMasteryBonus(ep["click-mastery"] ?? 0);
   const speciesBonus = getSpeciesBonus(currentSpecies);
-  const idleBoost = getIdleBoostMultiplier(prestigeUpgrades["idle-boost"] ?? 0);
+  const idleBoost = getIdleBoostMultiplier(ep["idle-boost"] ?? 0);
   const boosterMult = computeBoosterMultiplier(BOOSTERS, boostersPurchased);
   const currentTdPerSecond = getTotalTdPerSecond(
     UPGRADES,
@@ -274,6 +275,18 @@ export function PetDisplay() {
             </Button>
           )}
         </Group>
+        {activeChallengeId && (
+          <Badge
+            size="lg"
+            variant="light"
+            color="orange"
+            style={{ fontFamily: "monospace" }}
+          >
+            CHALLENGE:{" "}
+            {CHALLENGES.find((c) => c.id === activeChallengeId)?.name ??
+              activeChallengeId}
+          </Badge>
+        )}
         <Badge
           size="lg"
           variant="light"
@@ -294,8 +307,8 @@ export function PetDisplay() {
       <RebirthModal
         opened={rebirthModalOpen}
         onClose={() => setRebirthModalOpen(false)}
-        onConfirm={(selectedSpecies) => {
-          performRebirth(selectedSpecies);
+        onConfirm={(selectedSpecies, challengeId) => {
+          performRebirth(selectedSpecies, challengeId);
           setRebirthModalOpen(false);
         }}
         totalTdEarned={totalTdEarned}
@@ -305,6 +318,7 @@ export function PetDisplay() {
         unlockedSpecies={unlockedSpecies}
         hasUnlockAll={(prestigeUpgrades["unlock-all-species"] ?? 0) >= 1}
         tokenMagnetLevel={prestigeUpgrades["token-magnet"] ?? 0}
+        activeChallengeId={activeChallengeId}
         totalClicks={totalClicks}
         evolutionStage={evolutionStage}
         peakTdPerSecond={peakTdPerSecond}

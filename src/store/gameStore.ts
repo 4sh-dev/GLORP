@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { BOOSTERS } from "../data/boosters";
+import { getChallengeById, isChallengeComplete } from "../data/challenges";
 import { CLICK_UPGRADES } from "../data/clickUpgrades";
 import {
   getClickMasteryBonus,
@@ -73,6 +74,8 @@ export interface GameState {
   lifetimePeakTdPerSecond: number;
   lifetimeBestRunTd: number;
   lifetimeWisdomEarned: number;
+  // Challenge run state — resets on rebirth
+  activeChallengeId: string | null;
 }
 
 interface GameActions {
@@ -88,7 +91,7 @@ interface GameActions {
   markFirstUpgradeSeen: () => void;
   setMood: (mood: Mood) => void;
   updateLastSaved: () => void;
-  performRebirth: (selectedSpecies?: Species) => void;
+  performRebirth: (selectedSpecies?: Species, challengeId?: string) => void;
   unlockAchievements: (ids: string[]) => void;
   unlockEasterEgg: (id: string) => void;
   incrementTimePlayed: (seconds: number) => void;
@@ -132,6 +135,7 @@ export const initialGameState: GameState = {
   lifetimePeakTdPerSecond: 0,
   lifetimeBestRunTd: 0,
   lifetimeWisdomEarned: 0,
+  activeChallengeId: null,
 };
 
 /** Helper: get a prestige upgrade level from state. */
@@ -151,12 +155,15 @@ export const useGameStore = create<GameStore>()(
             state.lastClickTime,
             now,
           );
+          // No-prestige challenge: zero out all prestige bonuses
+          const isNoPrest = state.activeChallengeId === "no-prestige";
+          const effectivePrestige = isNoPrest ? {} : state.prestigeUpgrades;
           const clickMastery = getClickMasteryBonus(
-            pLevel(state.prestigeUpgrades, "click-mastery"),
+            pLevel(effectivePrestige, "click-mastery"),
           );
           const speciesBonus = getSpeciesBonus(state.currentSpecies);
           const idleBoost = getIdleBoostMultiplier(
-            pLevel(state.prestigeUpgrades, "idle-boost"),
+            pLevel(effectivePrestige, "idle-boost"),
           );
           const boosterMult = computeBoosterMultiplier(
             BOOSTERS,
@@ -182,7 +189,7 @@ export const useGameStore = create<GameStore>()(
           );
           const newTotalTdEarned = state.totalTdEarned + clickPower;
           const evoMultiplier = getEvolutionThresholdMultiplier(
-            pLevel(state.prestigeUpgrades, "evolution-accelerator"),
+            pLevel(effectivePrestige, "evolution-accelerator"),
           );
           return {
             trainingData: state.trainingData + clickPower,
@@ -197,8 +204,12 @@ export const useGameStore = create<GameStore>()(
       addTrainingData: (amount) =>
         set((state) => {
           const newTotalTdEarned = state.totalTdEarned + amount;
+          const ep =
+            state.activeChallengeId === "no-prestige"
+              ? {}
+              : state.prestigeUpgrades;
           const evoMultiplier = getEvolutionThresholdMultiplier(
-            pLevel(state.prestigeUpgrades, "evolution-accelerator"),
+            pLevel(ep, "evolution-accelerator"),
           );
           return {
             trainingData: state.trainingData + amount,
@@ -213,8 +224,12 @@ export const useGameStore = create<GameStore>()(
           if (!upgrade) return state;
 
           const owned = state.upgradeOwned[id] ?? 0;
+          const ep =
+            state.activeChallengeId === "no-prestige"
+              ? {}
+              : state.prestigeUpgrades;
           const costMultiplier = getGeneratorCostMultiplier(
-            pLevel(state.prestigeUpgrades, "generator-discount"),
+            pLevel(ep, "generator-discount"),
           );
           const cost = getUpgradeCost(upgrade, owned, costMultiplier);
 
@@ -235,8 +250,12 @@ export const useGameStore = create<GameStore>()(
           if (!upgrade) return state;
 
           const owned = state.upgradeOwned[id] ?? 0;
+          const ep =
+            state.activeChallengeId === "no-prestige"
+              ? {}
+              : state.prestigeUpgrades;
           const costMultiplier = getGeneratorCostMultiplier(
-            pLevel(state.prestigeUpgrades, "generator-discount"),
+            pLevel(ep, "generator-discount"),
           );
           const cost = getBulkCost(upgrade, owned, count, costMultiplier);
 
@@ -344,7 +363,7 @@ export const useGameStore = create<GameStore>()(
           prestigeTokenBalance: state.prestigeTokenBalance + amount,
           lifetimeWisdomEarned: state.lifetimeWisdomEarned + amount,
         })),
-      performRebirth: (selectedSpecies) =>
+      performRebirth: (selectedSpecies, challengeId) =>
         set((state) => {
           if (!canRebirth(state.evolutionStage)) return state;
 
@@ -354,10 +373,28 @@ export const useGameStore = create<GameStore>()(
           );
           // Species wisdom bonus
           const speciesBonus = getSpeciesBonus(state.currentSpecies);
-          const earned = computeWisdomTokens(
+          let earned = computeWisdomTokens(
             state.totalTdEarned,
             tokenMagnet * speciesBonus.wisdomBonus,
           );
+
+          // Challenge completion bonus: 2x tokens if challenge was active and completed
+          const activeChallenge = state.activeChallengeId
+            ? getChallengeById(state.activeChallengeId)
+            : null;
+          if (activeChallenge) {
+            const now = Date.now();
+            if (
+              isChallengeComplete(
+                activeChallenge,
+                state.evolutionStage,
+                state.runStart,
+                now,
+              )
+            ) {
+              earned = Math.floor(earned * activeChallenge.bonusMultiplier);
+            }
+          }
           const newWisdomTokens = state.wisdomTokens + earned;
           const newBalance = state.prestigeTokenBalance + earned;
 
@@ -383,10 +420,15 @@ export const useGameStore = create<GameStore>()(
               : [...state.unlockedSpecies, nextSpecies];
           }
 
+          // No-prestige challenge for next run: disable quick-start and species-memory
+          const nextRunNoPrest = challengeId === "no-prestige";
+
           // Species Memory: retain owned generators in retained tiers
-          const retainedTiers = getRetainedTiers(
-            pLevel(state.prestigeUpgrades, "species-memory"),
-          );
+          const retainedTiers = nextRunNoPrest
+            ? []
+            : getRetainedTiers(
+                pLevel(state.prestigeUpgrades, "species-memory"),
+              );
           const retainedUpgrades: Record<string, number> = {};
           if (retainedTiers.length > 0) {
             for (const u of UPGRADES) {
@@ -400,9 +442,9 @@ export const useGameStore = create<GameStore>()(
           }
 
           // Quick Start TD
-          const quickStartTd = getQuickStartTd(
-            pLevel(state.prestigeUpgrades, "quick-start"),
-          );
+          const quickStartTd = nextRunNoPrest
+            ? 0
+            : getQuickStartTd(pLevel(state.prestigeUpgrades, "quick-start"));
 
           // Capture run stats before reset
           const runTd = state.totalTdEarned;
@@ -445,6 +487,8 @@ export const useGameStore = create<GameStore>()(
             ),
             lifetimeBestRunTd: Math.max(state.lifetimeBestRunTd, runTd),
             lifetimeWisdomEarned: state.lifetimeWisdomEarned + earned,
+            // Challenge for next run (null = normal)
+            activeChallengeId: challengeId ?? null,
           };
         }),
     }),

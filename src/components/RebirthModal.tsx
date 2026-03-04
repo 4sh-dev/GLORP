@@ -1,4 +1,5 @@
 import {
+  Badge,
   Button,
   Divider,
   Group,
@@ -8,6 +9,8 @@ import {
   Text,
 } from "@mantine/core";
 import { useState } from "react";
+import type { Challenge } from "../data/challenges";
+import { CHALLENGES } from "../data/challenges";
 import { getTokenMagnetMultiplier } from "../data/prestigeShop";
 import type { Species } from "../data/species";
 import { getSpeciesBonus } from "../data/species";
@@ -29,7 +32,7 @@ function formatRunDuration(runStart: number): string {
 interface RebirthModalProps {
   opened: boolean;
   onClose: () => void;
-  onConfirm: (selectedSpecies?: Species) => void;
+  onConfirm: (selectedSpecies?: Species, challengeId?: string) => void;
   totalTdEarned: number;
   currentBalance: number;
   nextSpecies: Species;
@@ -37,6 +40,7 @@ interface RebirthModalProps {
   unlockedSpecies: Species[];
   hasUnlockAll: boolean;
   tokenMagnetLevel: number;
+  activeChallengeId: string | null;
   // Run stats
   totalClicks: number;
   evolutionStage: number;
@@ -55,12 +59,16 @@ export function RebirthModal({
   unlockedSpecies,
   hasUnlockAll,
   tokenMagnetLevel,
+  activeChallengeId,
   totalClicks,
   evolutionStage,
   peakTdPerSecond,
   runStart,
 }: RebirthModalProps) {
   const [selectedSpecies, setSelectedSpecies] = useState<Species | null>(null);
+  const [selectedChallenge, setSelectedChallenge] = useState<string | null>(
+    null,
+  );
 
   const tokenMagnet = getTokenMagnetMultiplier(tokenMagnetLevel);
   const speciesWisdom = getSpeciesBonus(currentSpecies).wisdomBonus;
@@ -74,13 +82,39 @@ export function RebirthModal({
 
   const displaySpecies = selectedSpecies ?? nextSpecies;
 
+  const challengeOptions: { value: string; label: string }[] = [
+    { value: "", label: "Normal (no challenge)" },
+    ...CHALLENGES.map((c: Challenge) => ({
+      value: c.id,
+      label: `${c.name} — ${c.description}`,
+    })),
+  ];
+
+  const selectedChallengeData = selectedChallenge
+    ? CHALLENGES.find((c) => c.id === selectedChallenge)
+    : null;
+
   return (
-    <Modal opened={opened} onClose={onClose} title="Rebirth" centered size="sm">
+    <Modal opened={opened} onClose={onClose} title="Rebirth" centered size="md">
       <Stack gap="md">
         <Text size="sm" c="dimmed" ta="center">
           You have reached Oracle-level consciousness. Are you ready to begin
           again?
         </Text>
+
+        {activeChallengeId && (
+          <Badge
+            color="orange"
+            variant="light"
+            size="lg"
+            ff="monospace"
+            mx="auto"
+          >
+            Active challenge:{" "}
+            {CHALLENGES.find((c) => c.id === activeChallengeId)?.name ??
+              activeChallengeId}
+          </Badge>
+        )}
 
         <Divider label="This run" labelPosition="center" />
 
@@ -170,6 +204,25 @@ export function RebirthModal({
           )}
         </Stack>
 
+        <Divider label="Challenge mode" labelPosition="center" />
+
+        <Stack gap="xs">
+          <Select
+            data={challengeOptions}
+            value={selectedChallenge ?? ""}
+            onChange={(val) => setSelectedChallenge(val || null)}
+            size="xs"
+            ff="monospace"
+            allowDeselect={false}
+          />
+          {selectedChallengeData && (
+            <Text ta="center" size="xs" c="orange.4" ff="monospace">
+              Reward: {selectedChallengeData.bonusMultiplier}x wisdom tokens on
+              completion
+            </Text>
+          )}
+        </Stack>
+
         <Text ta="center" size="xs" c="red.4">
           ⚠ Training Data ({formatNumber(totalTdEarned)} total TD), all
           upgrades, and evolution stage will reset.
@@ -181,7 +234,12 @@ export function RebirthModal({
           </Button>
           <Button
             color="yellow"
-            onClick={() => onConfirm(selectedSpecies ?? undefined)}
+            onClick={() =>
+              onConfirm(
+                selectedSpecies ?? undefined,
+                selectedChallenge ?? undefined,
+              )
+            }
           >
             Rebirth
           </Button>

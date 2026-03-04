@@ -380,4 +380,81 @@ describe("gameStore", () => {
       expect(useGameStore.getState().crossedMilestones).toEqual([]);
     });
   });
+
+  describe("challenge runs", () => {
+    it("activeChallengeId defaults to null", () => {
+      expect(useGameStore.getState().activeChallengeId).toBeNull();
+    });
+
+    it("performRebirth sets activeChallengeId for next run", () => {
+      useGameStore.setState({
+        totalTdEarned: 2_000_000,
+        evolutionStage: 5,
+      });
+      useGameStore.getState().performRebirth(undefined, "click-only");
+      expect(useGameStore.getState().activeChallengeId).toBe("click-only");
+    });
+
+    it("performRebirth clears challenge when none selected", () => {
+      useGameStore.setState({
+        totalTdEarned: 2_000_000,
+        evolutionStage: 5,
+        activeChallengeId: "click-only",
+      });
+      useGameStore.getState().performRebirth();
+      expect(useGameStore.getState().activeChallengeId).toBeNull();
+    });
+
+    it("awards 2x tokens when challenge is completed", () => {
+      // click-only challenge, need stage >= 3
+      useGameStore.setState({
+        totalTdEarned: 2_000_000, // base = floor(sqrt(4)) = 2
+        evolutionStage: 5,
+        activeChallengeId: "click-only",
+        runStart: Date.now() - 1000,
+      });
+      useGameStore.getState().performRebirth();
+      const state = useGameStore.getState();
+      // 2x multiplier: 2 * 2 = 4
+      expect(state.wisdomTokens).toBe(4);
+    });
+
+    it("does not award bonus when challenge is not completed", () => {
+      // no-prestige needs stage 5, give stage 4 only
+      useGameStore.setState({
+        totalTdEarned: 2_000_000,
+        evolutionStage: 4,
+        activeChallengeId: "no-prestige",
+        runStart: Date.now() - 1000,
+      });
+      useGameStore.getState().performRebirth();
+      const state = useGameStore.getState();
+      // No bonus: base = 2
+      expect(state.wisdomTokens).toBe(2);
+    });
+
+    it("no-prestige challenge disables quick-start for next run", () => {
+      useGameStore.setState({
+        totalTdEarned: 2_000_000,
+        evolutionStage: 5,
+        prestigeUpgrades: { "quick-start": 2 },
+      });
+      useGameStore.getState().performRebirth(undefined, "no-prestige");
+      const state = useGameStore.getState();
+      expect(state.trainingData).toBe(0);
+      expect(state.activeChallengeId).toBe("no-prestige");
+    });
+
+    it("no-prestige challenge disables species-memory for next run", () => {
+      useGameStore.setState({
+        totalTdEarned: 2_000_000,
+        evolutionStage: 5,
+        prestigeUpgrades: { "species-memory": 2 },
+        upgradeOwned: { "neural-notepad": 10, "data-hamster-wheel": 5 },
+      });
+      useGameStore.getState().performRebirth(undefined, "no-prestige");
+      const state = useGameStore.getState();
+      expect(state.upgradeOwned).toEqual({});
+    });
+  });
 });

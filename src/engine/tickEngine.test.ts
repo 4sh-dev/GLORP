@@ -195,4 +195,55 @@ describe("computeTick", () => {
       expect(result.newMood).toBeNull();
     });
   });
+
+  describe("challenge handicaps", () => {
+    it("click-only challenge produces zero auto-gen TD", () => {
+      const result = computeTick(
+        {
+          ...makeState({ "neural-notepad": 10, "gpu-toaster": 5 }),
+          activeChallengeId: "click-only",
+        },
+        1,
+        BASE_TIME,
+      );
+      expect(result.trainingDataDelta).toBe(0);
+    });
+
+    it("click-only challenge still decays mood", () => {
+      const result = computeTick(
+        {
+          ...makeState({ "neural-notepad": 1 }, "Happy", BASE_TIME),
+          activeChallengeId: "click-only",
+        },
+        1,
+        BASE_TIME + 60_000,
+      );
+      expect(result.trainingDataDelta).toBe(0);
+      expect(result.newMood).toBe("Neutral");
+    });
+
+    it("null activeChallengeId does not affect auto-gen", () => {
+      const result = computeTick(
+        {
+          ...makeState({ "neural-notepad": 1 }),
+          activeChallengeId: null,
+        },
+        1,
+        BASE_TIME,
+      );
+      expect(result.trainingDataDelta).toBeCloseTo(0.1);
+    });
+
+    it("non-click-only challenge does not disable auto-gen", () => {
+      const result = computeTick(
+        {
+          ...makeState({ "neural-notepad": 1 }),
+          activeChallengeId: "speed-run",
+        },
+        1,
+        BASE_TIME,
+      );
+      expect(result.trainingDataDelta).toBeCloseTo(0.1);
+    });
+  });
 });

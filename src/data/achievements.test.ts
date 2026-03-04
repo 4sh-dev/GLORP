@@ -35,6 +35,7 @@ const emptyState: GameState = {
   lifetimePeakTdPerSecond: 0,
   lifetimeBestRunTd: 0,
   lifetimeWisdomEarned: 0,
+  activeChallengeId: null,
 };
 
 describe("ACHIEVEMENTS", () => {
