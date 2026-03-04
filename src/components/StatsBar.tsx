@@ -1,9 +1,14 @@
 import { Group, Text } from "@mantine/core";
 import { useEffect, useRef, useState } from "react";
 import { BOOSTERS } from "../data/boosters";
-import { getIdleBoostMultiplier } from "../data/prestigeShop";
+import { CLICK_UPGRADES } from "../data/clickUpgrades";
+import {
+  getClickMasteryBonus,
+  getIdleBoostMultiplier,
+} from "../data/prestigeShop";
 import { getSpeciesBonus } from "../data/species";
 import { UPGRADES } from "../data/upgrades";
+import { computeClickPower } from "../engine/clickEngine";
 import {
   computeBoosterMultiplier,
   getTotalTdPerSecond,
@@ -23,8 +28,11 @@ export function StatsBar() {
   const prestigeUpgrades = useGameStore((s) => s.prestigeUpgrades);
   const currentSpecies = useGameStore((s) => s.currentSpecies);
   const rebirthCount = useGameStore((s) => s.rebirthCount);
+  const clickUpgradesPurchased = useGameStore((s) => s.clickUpgradesPurchased);
+  const comboCount = useGameStore((s) => s.comboCount);
+  const lastClickTime = useGameStore((s) => s.lastClickTime);
   const idleBoost = getIdleBoostMultiplier(prestigeUpgrades["idle-boost"] ?? 0);
-  const speciesAutoGen = getSpeciesBonus(currentSpecies).autoGen;
+  const speciesBonus = getSpeciesBonus(currentSpecies);
   const boosterMultiplier = computeBoosterMultiplier(
     BOOSTERS,
     boostersPurchased,
@@ -32,8 +40,19 @@ export function StatsBar() {
   const tdPerSecond = getTotalTdPerSecond(
     UPGRADES,
     upgradeOwned,
-    idleBoost * speciesAutoGen,
+    idleBoost * speciesBonus.autoGen,
     boosterMultiplier,
+  );
+  const clickMastery = getClickMasteryBonus(
+    prestigeUpgrades["click-mastery"] ?? 0,
+  );
+  const effectiveClickPower = computeClickPower(
+    { clickUpgradesPurchased, comboCount, lastClickTime },
+    CLICK_UPGRADES,
+    tdPerSecond,
+    undefined,
+    clickMastery,
+    speciesBonus.clickPower,
   );
   const numberFormat = useSettingsStore((s) => s.numberFormat);
   const fmt = numberFormat === "full" ? formatNumberFull : formatNumber;
@@ -89,6 +108,12 @@ export function StatsBar() {
             ▲✦
           </Text>
         )}
+      </Text>
+      <Text size="sm" ff="monospace">
+        Click:{" "}
+        <Text span fw={700} c="cyan">
+          {fmt(Math.floor(effectiveClickPower))} TD
+        </Text>
       </Text>
       {rebirthCount > 0 && (
         <Text size="sm" ff="monospace">

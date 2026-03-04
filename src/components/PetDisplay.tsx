@@ -1,10 +1,15 @@
 import { Badge, Button, Group, Stack, Text } from "@mantine/core";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { getAsciiFrames } from "../data/asciiArt";
+import { BOOSTERS } from "../data/boosters";
 import { CLICK_UPGRADES } from "../data/clickUpgrades";
-import { getClickMasteryBonus } from "../data/prestigeShop";
+import {
+  getClickMasteryBonus,
+  getIdleBoostMultiplier,
+} from "../data/prestigeShop";
 import { getSpeciesBonus } from "../data/species";
 import { STAGES } from "../data/stages";
+import { UPGRADES } from "../data/upgrades";
 import {
   COMBO_DECAY_MS,
   COMBO_THRESHOLD,
@@ -13,6 +18,10 @@ import {
 } from "../engine/clickEngine";
 import { getClickMood } from "../engine/moodEngine";
 import { canRebirth, getNextSpecies } from "../engine/rebirthEngine";
+import {
+  computeBoosterMultiplier,
+  getTotalTdPerSecond,
+} from "../engine/upgradeEngine";
 import { useAsciiAnimation } from "../hooks/useAsciiAnimation";
 import { useClickParticles } from "../hooks/useClickParticles";
 import { useDialogue } from "../hooks/useDialogue";
@@ -51,6 +60,8 @@ export function PetDisplay() {
   const totalClicks = useGameStore((s) => s.totalClicks);
   const peakTdPerSecond = useGameStore((s) => s.peakTdPerSecond);
   const runStart = useGameStore((s) => s.runStart);
+  const upgradeOwned = useGameStore((s) => s.upgradeOwned);
+  const boostersPurchased = useGameStore((s) => s.boostersPurchased);
 
   const artFrames = getAsciiFrames(currentSpecies, evolutionStage);
   const stageMeta = STAGES[evolutionStage] ?? STAGES[0];
@@ -106,18 +117,26 @@ export function PetDisplay() {
   const clickMastery = getClickMasteryBonus(
     prestigeUpgrades["click-mastery"] ?? 0,
   );
-  const speciesClickPower = getSpeciesBonus(currentSpecies).clickPower;
+  const speciesBonus = getSpeciesBonus(currentSpecies);
+  const idleBoost = getIdleBoostMultiplier(prestigeUpgrades["idle-boost"] ?? 0);
+  const boosterMult = computeBoosterMultiplier(BOOSTERS, boostersPurchased);
+  const currentTdPerSecond = getTotalTdPerSecond(
+    UPGRADES,
+    upgradeOwned,
+    idleBoost * speciesBonus.autoGen,
+    boosterMult,
+  );
   const baseClickPower = computeClickPower(
     {
-      evolutionStage,
       clickUpgradesPurchased,
       comboCount: 0,
       lastClickTime: 0,
     },
     CLICK_UPGRADES,
-    Date.now(),
+    currentTdPerSecond,
+    undefined,
     clickMastery,
-    speciesClickPower,
+    speciesBonus.clickPower,
   );
 
   // Decay combo display when not clicking

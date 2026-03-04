@@ -6,6 +6,7 @@ import {
   getClickMasteryBonus,
   getEvolutionThresholdMultiplier,
   getGeneratorCostMultiplier,
+  getIdleBoostMultiplier,
   getQuickStartTd,
   getRetainedTiers,
   getTokenMagnetMultiplier,
@@ -22,7 +23,12 @@ import {
   computeWisdomTokens,
   getNextSpecies,
 } from "../engine/rebirthEngine";
-import { getBulkCost, getUpgradeCost } from "../engine/upgradeEngine";
+import {
+  computeBoosterMultiplier,
+  getBulkCost,
+  getTotalTdPerSecond,
+  getUpgradeCost,
+} from "../engine/upgradeEngine";
 
 export interface GameState {
   trainingData: number;
@@ -149,14 +155,27 @@ export const useGameStore = create<GameStore>()(
             pLevel(state.prestigeUpgrades, "click-mastery"),
           );
           const speciesBonus = getSpeciesBonus(state.currentSpecies);
+          const idleBoost = getIdleBoostMultiplier(
+            pLevel(state.prestigeUpgrades, "idle-boost"),
+          );
+          const boosterMult = computeBoosterMultiplier(
+            BOOSTERS,
+            state.boostersPurchased,
+          );
+          const tdPerSecond = getTotalTdPerSecond(
+            UPGRADES,
+            state.upgradeOwned,
+            idleBoost * speciesBonus.autoGen,
+            boosterMult,
+          );
           const clickPower = computeClickPower(
             {
-              evolutionStage: state.evolutionStage,
               clickUpgradesPurchased: state.clickUpgradesPurchased,
               comboCount: newComboCount,
               lastClickTime: now,
             },
             CLICK_UPGRADES,
+            tdPerSecond,
             now,
             clickMastery,
             speciesBonus.clickPower,

@@ -12,35 +12,68 @@ export const COMBO_THRESHOLD = 3;
 /** Bonus multiplier applied when combo is active. */
 export const COMBO_MULTIPLIER = 1.5;
 
+/**
+ * Baseline seconds of passive income earned per click (before any upgrades).
+ * At 0 generators (tdPerSecond = 0) a floor of 1 TD applies.
+ */
+export const BASE_CLICK_SECONDS = 0.05;
+
+/**
+ * Seconds of passive income added per Click Mastery prestige level.
+ * 10 levels → +1.0s (same contribution as the Synthetic Data Farm upgrade).
+ */
+export const MASTERY_CLICK_SECONDS_PER_LEVEL = 0.1;
+
 interface ClickPowerState {
-  evolutionStage: number;
   clickUpgradesPurchased: string[];
   comboCount: number;
   lastClickTime: number;
 }
 
 /**
- * Compute the total click power.
+ * Returns the total click-seconds value for the given purchased upgrades and
+ * Click Mastery bonus level.
  *
- * Formula: (1 + evolutionStage + clickMasteryBonus)
- *          × product(purchased upgrade multipliers)
- *          × comboMultiplier × speciesClickMultiplier
+ * Formula: BASE_CLICK_SECONDS + Σ(purchased upgrade clickSeconds)
+ *          + clickMasteryBonus × MASTERY_CLICK_SECONDS_PER_LEVEL
+ */
+export function computeClickSeconds(
+  purchasedIds: string[],
+  clickUpgrades: readonly ClickUpgrade[],
+  clickMasteryBonus = 0,
+): number {
+  let seconds = BASE_CLICK_SECONDS;
+  for (const upgrade of clickUpgrades) {
+    if (purchasedIds.includes(upgrade.id)) {
+      seconds += upgrade.clickSeconds;
+    }
+  }
+  seconds += clickMasteryBonus * MASTERY_CLICK_SECONDS_PER_LEVEL;
+  return seconds;
+}
+
+/**
+ * Compute the total click value in TD.
+ *
+ * Formula: max(1, clickSeconds × tdPerSecond × comboMultiplier × speciesClickMultiplier)
+ *
+ * The floor of 1 preserves early-game playability before any generators are
+ * bought (when tdPerSecond = 0).  Once passive income is meaningful the
+ * formula fully governs the result.
  */
 export function computeClickPower(
   state: ClickPowerState,
   clickUpgrades: readonly ClickUpgrade[],
+  tdPerSecond: number,
   now?: number,
   clickMasteryBonus = 0,
   speciesClickMultiplier = 1,
 ): number {
-  const base = 1 + state.evolutionStage + clickMasteryBonus;
-
-  let upgradeMultiplier = 1;
-  for (const upgrade of clickUpgrades) {
-    if (state.clickUpgradesPurchased.includes(upgrade.id)) {
-      upgradeMultiplier *= upgrade.multiplier;
-    }
-  }
+  const seconds = computeClickSeconds(
+    state.clickUpgradesPurchased,
+    clickUpgrades,
+    clickMasteryBonus,
+  );
 
   const combo = computeComboMultiplier(
     state.comboCount,
@@ -48,7 +81,7 @@ export function computeClickPower(
     now,
   );
 
-  return base * upgradeMultiplier * combo * speciesClickMultiplier;
+  return Math.max(1, seconds * tdPerSecond * combo * speciesClickMultiplier);
 }
 
 /**

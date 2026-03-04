@@ -2,21 +2,26 @@ import { describe, expect, it } from "vitest";
 import type { ClickUpgrade } from "../data/clickUpgrades";
 import { CLICK_UPGRADES } from "../data/clickUpgrades";
 import {
+  BASE_CLICK_SECONDS,
   COMBO_CLICK_WINDOW_MS,
   COMBO_DECAY_MS,
   COMBO_MULTIPLIER,
   COMBO_THRESHOLD,
   computeClickPower,
+  computeClickSeconds,
   computeComboMultiplier,
   getNextComboCount,
+  MASTERY_CLICK_SECONDS_PER_LEVEL,
 } from "./clickEngine";
+
+// ── Test helpers ──────────────────────────────────────────────────────────────
 
 const mockUpgrades: readonly ClickUpgrade[] = [
   {
     id: "upgrade-a",
     name: "Upgrade A",
     description: "Test",
-    multiplier: 2,
+    clickSeconds: 0.1,
     cost: 10,
     unlockStage: 0,
     icon: "A",
@@ -25,7 +30,7 @@ const mockUpgrades: readonly ClickUpgrade[] = [
     id: "upgrade-b",
     name: "Upgrade B",
     description: "Test",
-    multiplier: 3,
+    clickSeconds: 0.15,
     cost: 100,
     unlockStage: 0,
     icon: "B",
@@ -34,166 +39,176 @@ const mockUpgrades: readonly ClickUpgrade[] = [
     id: "upgrade-c",
     name: "Upgrade C",
     description: "Test",
-    multiplier: 5,
+    clickSeconds: 0.25,
     cost: 1000,
     unlockStage: 1,
     icon: "C",
   },
 ];
 
+const NO_COMBO = { comboCount: 0, lastClickTime: 0 };
+
+// ── computeClickSeconds ───────────────────────────────────────────────────────
+
+describe("computeClickSeconds", () => {
+  it("returns BASE_CLICK_SECONDS with no upgrades or mastery", () => {
+    expect(computeClickSeconds([], mockUpgrades)).toBe(BASE_CLICK_SECONDS);
+  });
+
+  it("adds clickSeconds for each purchased upgrade", () => {
+    expect(computeClickSeconds(["upgrade-a"], mockUpgrades)).toBeCloseTo(
+      BASE_CLICK_SECONDS + 0.1,
+    );
+  });
+
+  it("stacks multiple purchased upgrades", () => {
+    expect(
+      computeClickSeconds(
+        ["upgrade-a", "upgrade-b", "upgrade-c"],
+        mockUpgrades,
+      ),
+    ).toBeCloseTo(BASE_CLICK_SECONDS + 0.1 + 0.15 + 0.25);
+  });
+
+  it("adds MASTERY_CLICK_SECONDS_PER_LEVEL per mastery level", () => {
+    expect(computeClickSeconds([], mockUpgrades, 3)).toBeCloseTo(
+      BASE_CLICK_SECONDS + 3 * MASTERY_CLICK_SECONDS_PER_LEVEL,
+    );
+  });
+
+  it("ignores non-existent upgrade IDs", () => {
+    expect(computeClickSeconds(["nonexistent"], mockUpgrades)).toBe(
+      BASE_CLICK_SECONDS,
+    );
+  });
+});
+
+// ── computeClickPower ─────────────────────────────────────────────────────────
+
 describe("computeClickPower", () => {
-  it("returns 1 at base state (stage 0, no upgrades, no combo)", () => {
+  it("returns 1 (floor) when tdPerSecond is 0 and no combo", () => {
     const power = computeClickPower(
-      {
-        evolutionStage: 0,
-        clickUpgradesPurchased: [],
-        comboCount: 0,
-        lastClickTime: 0,
-      },
+      { clickUpgradesPurchased: [], ...NO_COMBO },
       mockUpgrades,
-      Date.now(),
+      0,
     );
     expect(power).toBe(1);
   });
 
-  it("scales with evolution stage: (1 + stage)", () => {
+  it("returns floor of 1 even with upgrades at 0 tdPerSecond", () => {
     const power = computeClickPower(
-      {
-        evolutionStage: 3,
-        clickUpgradesPurchased: [],
-        comboCount: 0,
-        lastClickTime: 0,
-      },
+      { clickUpgradesPurchased: ["upgrade-a"], ...NO_COMBO },
       mockUpgrades,
-      Date.now(),
+      0,
     );
-    expect(power).toBe(4); // 1 + 3 = 4
+    expect(power).toBe(1);
   });
 
-  it("at Singularity (stage 5), base is 6x before upgrades", () => {
+  it("scales linearly with tdPerSecond", () => {
+    const tdPerSecond = 1000;
     const power = computeClickPower(
-      {
-        evolutionStage: 5,
-        clickUpgradesPurchased: [],
-        comboCount: 0,
-        lastClickTime: 0,
-      },
+      { clickUpgradesPurchased: [], ...NO_COMBO },
       mockUpgrades,
-      Date.now(),
+      tdPerSecond,
     );
-    expect(power).toBe(6); // 1 + 5 = 6
+    expect(power).toBeCloseTo(BASE_CLICK_SECONDS * tdPerSecond);
   });
 
-  it("multiplies by purchased click upgrades", () => {
+  it("adds purchased upgrade seconds to base", () => {
+    const tdPerSecond = 1000;
+    const expected = (BASE_CLICK_SECONDS + 0.1) * tdPerSecond; // upgrade-a
     const power = computeClickPower(
-      {
-        evolutionStage: 0,
-        clickUpgradesPurchased: ["upgrade-a"],
-        comboCount: 0,
-        lastClickTime: 0,
-      },
+      { clickUpgradesPurchased: ["upgrade-a"], ...NO_COMBO },
       mockUpgrades,
-      Date.now(),
+      tdPerSecond,
     );
-    expect(power).toBe(2); // 1 * 2 = 2
+    expect(power).toBeCloseTo(expected);
   });
 
-  it("stacks multiple upgrade multipliers", () => {
+  it("stacks all purchased upgrades", () => {
+    const tdPerSecond = 100;
+    const totalSeconds = BASE_CLICK_SECONDS + 0.1 + 0.15 + 0.25;
     const power = computeClickPower(
       {
-        evolutionStage: 0,
         clickUpgradesPurchased: ["upgrade-a", "upgrade-b", "upgrade-c"],
-        comboCount: 0,
-        lastClickTime: 0,
+        ...NO_COMBO,
       },
       mockUpgrades,
-      Date.now(),
+      tdPerSecond,
     );
-    expect(power).toBe(30); // 1 * 2 * 3 * 5 = 30
+    expect(power).toBeCloseTo(totalSeconds * tdPerSecond);
   });
 
-  it("combines evolution stage and upgrades", () => {
-    const power = computeClickPower(
-      {
-        evolutionStage: 2,
-        clickUpgradesPurchased: ["upgrade-a"],
-        comboCount: 0,
-        lastClickTime: 0,
-      },
-      mockUpgrades,
-      Date.now(),
-    );
-    expect(power).toBe(6); // (1+2) * 2 = 6
-  });
-
-  it("applies combo multiplier when combo is active", () => {
+  it("applies combo multiplier on top", () => {
     const now = Date.now();
+    const tdPerSecond = 1000;
     const power = computeClickPower(
       {
-        evolutionStage: 0,
         clickUpgradesPurchased: [],
         comboCount: COMBO_THRESHOLD,
         lastClickTime: now,
       },
       mockUpgrades,
+      tdPerSecond,
       now,
     );
-    expect(power).toBe(COMBO_MULTIPLIER); // 1 * 1.5 = 1.5
+    const expectedBase = BASE_CLICK_SECONDS * tdPerSecond;
+    expect(power).toBeCloseTo(expectedBase * COMBO_MULTIPLIER);
   });
 
-  it("combines all three: stage + upgrades + combo", () => {
-    const now = Date.now();
-    const comboCount = COMBO_THRESHOLD + 5;
-    const expectedCombo = computeComboMultiplier(comboCount, now, now);
+  it("applies species click multiplier", () => {
+    const tdPerSecond = 1000;
     const power = computeClickPower(
-      {
-        evolutionStage: 5,
-        clickUpgradesPurchased: ["upgrade-a", "upgrade-b"],
-        comboCount,
-        lastClickTime: now,
-      },
+      { clickUpgradesPurchased: [], ...NO_COMBO },
       mockUpgrades,
-      now,
+      tdPerSecond,
+      undefined,
+      0,
+      1.5, // CHONK species
     );
-    // (1+5) * 2 * 3 * expectedCombo = 36 * expectedCombo
-    expect(power).toBeCloseTo(36 * expectedCombo, 5);
+    expect(power).toBeCloseTo(BASE_CLICK_SECONDS * tdPerSecond * 1.5);
   });
 
-  it("ignores non-existent upgrade IDs", () => {
+  it("includes click mastery bonus seconds", () => {
+    const tdPerSecond = 1000;
+    const masteryLevel = 5;
+    const expected =
+      (BASE_CLICK_SECONDS + masteryLevel * MASTERY_CLICK_SECONDS_PER_LEVEL) *
+      tdPerSecond;
     const power = computeClickPower(
-      {
-        evolutionStage: 0,
-        clickUpgradesPurchased: ["nonexistent-id"],
-        comboCount: 0,
-        lastClickTime: 0,
-      },
+      { clickUpgradesPurchased: [], ...NO_COMBO },
       mockUpgrades,
-      Date.now(),
+      tdPerSecond,
+      undefined,
+      masteryLevel,
     );
-    expect(power).toBe(1);
+    expect(power).toBeCloseTo(expected);
   });
 
-  it("works with real CLICK_UPGRADES data — all purchased at stage 5", () => {
+  it("click power scales with tdPerSecond — mid game example", () => {
+    // At 1,000 TD/s with all real upgrades → ~2.05s × 1000 = 2050 TD/click
     const allIds = CLICK_UPGRADES.map((u) => u.id);
-    const totalMultiplier = CLICK_UPGRADES.reduce(
-      (acc, u) => acc * u.multiplier,
-      1,
-    );
     const power = computeClickPower(
-      {
-        evolutionStage: 5,
-        clickUpgradesPurchased: allIds,
-        comboCount: 0,
-        lastClickTime: 0,
-      },
+      { clickUpgradesPurchased: allIds, ...NO_COMBO },
       CLICK_UPGRADES,
-      Date.now(),
+      1000,
     );
-    // (1+5) * 600 = 3600
-    expect(power).toBe(6 * totalMultiplier);
-    expect(totalMultiplier).toBe(600);
+    expect(power).toBeGreaterThan(1000);
+  });
+
+  it("click power scales with tdPerSecond — late game example", () => {
+    // At 30,000 TD/s with all real upgrades → >60,000 TD/click
+    const allIds = CLICK_UPGRADES.map((u) => u.id);
+    const power = computeClickPower(
+      { clickUpgradesPurchased: allIds, ...NO_COMBO },
+      CLICK_UPGRADES,
+      30_000,
+    );
+    expect(power).toBeGreaterThan(60_000);
   });
 });
+
+// ── computeComboMultiplier ────────────────────────────────────────────────────
 
 describe("computeComboMultiplier", () => {
   it("returns 1 when combo count is below threshold", () => {
@@ -262,6 +277,8 @@ describe("computeComboMultiplier", () => {
   });
 });
 
+// ── getNextComboCount ─────────────────────────────────────────────────────────
+
 describe("getNextComboCount", () => {
   it("returns 1 on first click (lastClickTime === 0)", () => {
     expect(getNextComboCount(0, 0, Date.now())).toBe(1);
@@ -298,6 +315,8 @@ describe("getNextComboCount", () => {
   });
 });
 
+// ── Constants ─────────────────────────────────────────────────────────────────
+
 describe("constants", () => {
   it("COMBO_CLICK_WINDOW_MS is 333 (≈3 clicks/sec)", () => {
     expect(COMBO_CLICK_WINDOW_MS).toBe(333);
@@ -314,7 +333,17 @@ describe("constants", () => {
   it("COMBO_MULTIPLIER is 1.5", () => {
     expect(COMBO_MULTIPLIER).toBe(1.5);
   });
+
+  it("BASE_CLICK_SECONDS is 0.05", () => {
+    expect(BASE_CLICK_SECONDS).toBe(0.05);
+  });
+
+  it("MASTERY_CLICK_SECONDS_PER_LEVEL is 0.1", () => {
+    expect(MASTERY_CLICK_SECONDS_PER_LEVEL).toBe(0.1);
+  });
 });
+
+// ── CLICK_UPGRADES data integrity ─────────────────────────────────────────────
 
 describe("CLICK_UPGRADES data integrity", () => {
   it("has 5 click upgrades", () => {
@@ -326,15 +355,24 @@ describe("CLICK_UPGRADES data integrity", () => {
     expect(new Set(ids).size).toBe(ids.length);
   });
 
-  it("all upgrades have multiplier > 1", () => {
+  it("all upgrades have clickSeconds > 0", () => {
     for (const u of CLICK_UPGRADES) {
-      expect(u.multiplier).toBeGreaterThan(1);
+      expect(u.clickSeconds).toBeGreaterThan(0);
     }
   });
 
-  it("total multiplier from all upgrades is 600x", () => {
-    const total = CLICK_UPGRADES.reduce((acc, u) => acc * u.multiplier, 1);
-    expect(total).toBe(600);
+  it("total clickSeconds from all upgrades is 2.0s", () => {
+    const total = CLICK_UPGRADES.reduce((acc, u) => acc + u.clickSeconds, 0);
+    expect(total).toBeCloseTo(2.0);
+  });
+
+  it("with all upgrades, each click gives ~2.05s of passive income", () => {
+    const allIds = CLICK_UPGRADES.map((u) => u.id);
+    const totalSeconds = computeClickSeconds(allIds, CLICK_UPGRADES);
+    expect(totalSeconds).toBeCloseTo(
+      BASE_CLICK_SECONDS + 0.1 + 0.15 + 0.25 + 0.5 + 1.0,
+    );
+    expect(totalSeconds).toBeGreaterThanOrEqual(2.0);
   });
 
   it("upgrades are ordered by cost", () => {

@@ -69,7 +69,7 @@ export function ClickUpgradeCard({
 
       <Group justify="space-between" align="center">
         <Text size="xs" ff="monospace" c="yellow">
-          {upgrade.multiplier}x click power
+          +{upgrade.clickSeconds}s per click
         </Text>
         {!purchased && (
           <Button
