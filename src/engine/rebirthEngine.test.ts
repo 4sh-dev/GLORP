@@ -32,18 +32,34 @@ describe("computeWisdomTokens", () => {
   });
 
   it("floors fractional results", () => {
-    // floor(sqrt(1_000_000 / 500_000)) = floor(sqrt(2)) = floor(1.414) = 1
-    expect(computeWisdomTokens(1_000_000)).toBe(1);
+    // floor(sqrt(2 * 5_000_000 / 5_000_000)) = floor(sqrt(2)) = floor(1.414) = 1
+    expect(computeWisdomTokens(2 * WISDOM_TOKENS_DIVISOR)).toBe(1);
   });
 
-  it("returns ~4 tokens at minimum rebirth TD (stage 4 = 10M)", () => {
-    // floor(sqrt(10_000_000 / 500_000)) = floor(sqrt(20)) = floor(4.47) = 4
-    expect(computeWisdomTokens(10_000_000)).toBe(4);
+  it("returns 1 token at minimum rebirth TD (stage 4 = 10M)", () => {
+    // floor(sqrt(10_000_000 / 5_000_000)) = floor(sqrt(2)) = floor(1.414) = 1
+    expect(computeWisdomTokens(10_000_000)).toBe(1);
   });
 
   it("scales correctly at 50M TD (mid-game rebirth)", () => {
-    // floor(sqrt(50_000_000 / 500_000)) = floor(sqrt(100)) = 10
-    expect(computeWisdomTokens(50_000_000)).toBe(10);
+    // floor(sqrt(50_000_000 / 5_000_000)) = floor(sqrt(10)) = floor(3.162) = 3
+    expect(computeWisdomTokens(50_000_000)).toBe(3);
+  });
+
+  // Balance snapshots (divisor = 5_000_000)
+  it("balance: returns 14 tokens at 1B TD (stage 5 min)", () => {
+    // floor(sqrt(1_000_000_000 / 5_000_000)) = floor(sqrt(200)) = floor(14.14) = 14
+    expect(computeWisdomTokens(1_000_000_000)).toBe(14);
+  });
+
+  it("balance: returns 35 tokens at 1B TD with max multiplier (2.5x)", () => {
+    // base = 14, floor(14 * 2.5) = 35
+    expect(computeWisdomTokens(1_000_000_000, 2.5)).toBe(35);
+  });
+
+  it("balance: returns 31 tokens at 5B TD (extended stage 5 play)", () => {
+    // floor(sqrt(5_000_000_000 / 5_000_000)) = floor(sqrt(1000)) = floor(31.62) = 31
+    expect(computeWisdomTokens(5_000_000_000)).toBe(31);
   });
 
   it("applies tokenMagnetMultiplier", () => {
