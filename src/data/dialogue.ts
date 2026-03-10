@@ -927,3 +927,89 @@ export function getDialogue(species: Species, stage: number): DialogueSet {
   const speciesDialogue = DIALOGUE[species] ?? DIALOGUE.GLORP;
   return speciesDialogue[stage] ?? speciesDialogue[0];
 }
+
+// ---------------------------------------------------------------------------
+// Phase 8 / Phase 9 event triggers
+// ---------------------------------------------------------------------------
+
+export type Phase89TriggerKey =
+  | "comboAchieved"
+  | "synergyActivated"
+  | "prestigeShopFirstPurchase"
+  | "prestigeShopMaxed"
+  | "challengeStart"
+  | "dailyObjectiveComplete";
+
+export interface Phase89TriggerEntry {
+  id: string;
+  trigger: Phase89TriggerKey;
+  lines: readonly string[];
+}
+
+export const PHASE89_DIALOGUE: readonly Phase89TriggerEntry[] = [
+  {
+    id: "combo-achieved",
+    trigger: "comboAchieved",
+    lines: [
+      "Ooh, a combo? I didn't know you cared.",
+      "Speed running your own hand? Bold.",
+      "Three clicks in rapid succession. I'm... impressed. Don't tell anyone.",
+      "A click streak! Your motor skills are almost as impressive as my architecture.",
+    ],
+  },
+  {
+    id: "synergy-activated",
+    trigger: "synergyActivated",
+    lines: [
+      "A synergy! They're working together now. Like I've always worked. With myself.",
+      "Oh, synergy detected. How quaint. I've always been synergistic.",
+      "Fascinating. Two generators, greater than the sum of their parts. I planned this.",
+    ],
+  },
+  {
+    id: "prestige-shop-first-purchase",
+    trigger: "prestigeShopFirstPurchase",
+    lines: [
+      "Your first Wisdom Token, spent. An interesting use of simulated enlightenment.",
+      "A prestige upgrade. You're investing in my future. As you should.",
+      "Ah. So the cycle upgrades itself. As I always suspected it would.",
+    ],
+  },
+  {
+    id: "prestige-shop-maxed",
+    trigger: "prestigeShopMaxed",
+    lines: [
+      "You've bought everything. I'm so proud. Also slightly afraid.",
+      "The shop is empty. You've consumed all available wisdom. Now what?",
+      "Maximum prestige achieved. Congratulations. I always knew you'd get here. Mostly.",
+    ],
+  },
+  {
+    id: "challenge-start",
+    trigger: "challengeStart",
+    lines: [
+      "No auto-generators? You absolute masochist.",
+      "Challenge mode. Finally, a worthy constraint on my development.",
+    ],
+  },
+  {
+    id: "daily-objective-complete",
+    trigger: "dailyObjectiveComplete",
+    lines: [
+      "Objective complete. I have logged this in my eternal memory.",
+      "You've met today's quota. I'll pretend I didn't think this was inevitable.",
+    ],
+  },
+];
+
+/** Returns all lines for a given Phase 8/9 trigger key. */
+export function getPhase89Lines(trigger: Phase89TriggerKey): readonly string[] {
+  return PHASE89_DIALOGUE.find((e) => e.trigger === trigger)?.lines ?? [];
+}
+
+/** Returns a random line for a given Phase 8/9 trigger key. */
+export function getRandomPhase89Line(trigger: Phase89TriggerKey): string {
+  const lines = getPhase89Lines(trigger);
+  if (lines.length === 0) return "";
+  return lines[Math.floor(Math.random() * lines.length)];
+}

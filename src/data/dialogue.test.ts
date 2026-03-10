@@ -1,6 +1,21 @@
 import { describe, expect, it } from "vitest";
-import { DIALOGUE, getDialogue } from "./dialogue";
+import {
+  DIALOGUE,
+  getDialogue,
+  getPhase89Lines,
+  getRandomPhase89Line,
+  PHASE89_DIALOGUE,
+} from "./dialogue";
 import { SPECIES_ORDER } from "./species";
+
+const REQUIRED_TRIGGERS = [
+  "comboAchieved",
+  "synergyActivated",
+  "prestigeShopFirstPurchase",
+  "prestigeShopMaxed",
+  "challengeStart",
+  "dailyObjectiveComplete",
+] as const;
 
 const ALL_STAGES = [0, 1, 2, 3, 4];
 
@@ -138,6 +153,106 @@ describe("dialogue data", () => {
     );
     const unique = new Set(stage0Lines);
     expect(unique.size).toBe(SPECIES_ORDER.length);
+  });
+});
+
+describe("PHASE89_DIALOGUE", () => {
+  it("has an entry for each required trigger", () => {
+    const triggers = PHASE89_DIALOGUE.map((e) => e.trigger);
+    for (const key of REQUIRED_TRIGGERS) {
+      expect(triggers).toContain(key);
+    }
+  });
+
+  it("each entry has a non-empty id", () => {
+    for (const entry of PHASE89_DIALOGUE) {
+      expect(typeof entry.id).toBe("string");
+      expect(entry.id.length).toBeGreaterThan(0);
+    }
+  });
+
+  it("all lines are non-empty strings", () => {
+    for (const entry of PHASE89_DIALOGUE) {
+      expect(entry.lines.length).toBeGreaterThan(0);
+      for (const line of entry.lines) {
+        expect(typeof line).toBe("string");
+        expect(line.length).toBeGreaterThan(0);
+      }
+    }
+  });
+
+  it("no entry has duplicate lines", () => {
+    for (const entry of PHASE89_DIALOGUE) {
+      const unique = new Set(entry.lines);
+      expect(unique.size).toBe(entry.lines.length);
+    }
+  });
+
+  it("comboAchieved has at least 3 lines", () => {
+    const lines = getPhase89Lines("comboAchieved");
+    expect(lines.length).toBeGreaterThanOrEqual(3);
+  });
+
+  it("synergyActivated has at least 3 lines", () => {
+    const lines = getPhase89Lines("synergyActivated");
+    expect(lines.length).toBeGreaterThanOrEqual(3);
+  });
+
+  it("prestigeShopFirstPurchase has at least 3 lines", () => {
+    const lines = getPhase89Lines("prestigeShopFirstPurchase");
+    expect(lines.length).toBeGreaterThanOrEqual(3);
+  });
+
+  it("prestigeShopMaxed has at least 3 lines", () => {
+    const lines = getPhase89Lines("prestigeShopMaxed");
+    expect(lines.length).toBeGreaterThanOrEqual(3);
+  });
+
+  it("challengeStart has at least 2 lines", () => {
+    const lines = getPhase89Lines("challengeStart");
+    expect(lines.length).toBeGreaterThanOrEqual(2);
+  });
+
+  it("dailyObjectiveComplete has at least 2 lines", () => {
+    const lines = getPhase89Lines("dailyObjectiveComplete");
+    expect(lines.length).toBeGreaterThanOrEqual(2);
+  });
+
+  it("no duplicate ids across entries", () => {
+    const ids = PHASE89_DIALOGUE.map((e) => e.id);
+    const unique = new Set(ids);
+    expect(unique.size).toBe(ids.length);
+  });
+});
+
+describe("getPhase89Lines", () => {
+  it("returns lines for a valid trigger key", () => {
+    const lines = getPhase89Lines("comboAchieved");
+    expect(lines.length).toBeGreaterThan(0);
+  });
+
+  it("returns empty array for unknown trigger", () => {
+    const lines = getPhase89Lines("nonExistent" as never);
+    expect(lines).toEqual([]);
+  });
+});
+
+describe("getRandomPhase89Line", () => {
+  it("returns a non-empty string for a valid trigger", () => {
+    const line = getRandomPhase89Line("challengeStart");
+    expect(typeof line).toBe("string");
+    expect(line.length).toBeGreaterThan(0);
+  });
+
+  it("returns a line that exists in the entry", () => {
+    const lines = getPhase89Lines("prestigeShopMaxed");
+    const line = getRandomPhase89Line("prestigeShopMaxed");
+    expect(lines).toContain(line);
+  });
+
+  it("returns empty string for unknown trigger", () => {
+    const line = getRandomPhase89Line("nonExistent" as never);
+    expect(line).toBe("");
   });
 });
 
