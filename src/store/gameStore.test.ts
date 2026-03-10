@@ -445,7 +445,7 @@ describe("gameStore", () => {
       expect(state.activeChallengeId).toBe("no-prestige");
     });
 
-    it("no-prestige challenge disables species-memory for next run", () => {
+    it("resets upgradeOwned to {} regardless of species-memory prestige", () => {
       useGameStore.setState({
         totalTdEarned: 2_000_000,
         evolutionStage: 5,
@@ -455,6 +455,77 @@ describe("gameStore", () => {
       useGameStore.getState().performRebirth(undefined, "no-prestige");
       const state = useGameStore.getState();
       expect(state.upgradeOwned).toEqual({});
+    });
+  });
+
+  describe("rebirth reset", () => {
+    it("resets upgradeOwned to {} after rebirth", () => {
+      useGameStore.setState({
+        totalTdEarned: 2_000_000,
+        evolutionStage: 5,
+        upgradeOwned: { "neural-notepad": 50, "quantum-processor": 100 },
+      });
+      useGameStore.getState().performRebirth();
+      expect(useGameStore.getState().upgradeOwned).toEqual({});
+    });
+
+    it("resets upgradeOwned to {} even with species-memory prestige active", () => {
+      useGameStore.setState({
+        totalTdEarned: 2_000_000,
+        evolutionStage: 5,
+        prestigeUpgrades: { "species-memory": 5 },
+        upgradeOwned: {
+          "neural-notepad": 100,
+          "mind-singularity": 50,
+          "infinite-regression": 30,
+        },
+      });
+      useGameStore.getState().performRebirth();
+      expect(useGameStore.getState().upgradeOwned).toEqual({});
+    });
+
+    it("resets evolutionStage to 0 after rebirth with no quick-start", () => {
+      useGameStore.setState({
+        totalTdEarned: 10_000_000,
+        evolutionStage: 4,
+      });
+      useGameStore.getState().performRebirth();
+      expect(useGameStore.getState().evolutionStage).toBe(0);
+    });
+
+    it("resets totalTdEarned to 0 after rebirth with no quick-start", () => {
+      useGameStore.setState({
+        totalTdEarned: 5_000_000,
+        evolutionStage: 4,
+      });
+      useGameStore.getState().performRebirth();
+      expect(useGameStore.getState().totalTdEarned).toBe(0);
+    });
+
+    it("preserves prestigeUpgrades (Wisdom bonuses) after rebirth", () => {
+      useGameStore.setState({
+        totalTdEarned: 2_000_000,
+        evolutionStage: 5,
+        prestigeUpgrades: { "idle-boost": 3, "click-mastery": 5 },
+      });
+      useGameStore.getState().performRebirth();
+      expect(useGameStore.getState().prestigeUpgrades).toEqual({
+        "idle-boost": 3,
+        "click-mastery": 5,
+      });
+    });
+
+    it("sets evolutionStage based on quickStartTd when quick-start prestige active", () => {
+      // quick-start level 2 = 10_000 TD; getEvolutionStage(10_000) = stage 2 (unlockAt 5_000)
+      useGameStore.setState({
+        totalTdEarned: 2_000_000,
+        evolutionStage: 5,
+        prestigeUpgrades: { "quick-start": 2 },
+      });
+      useGameStore.getState().performRebirth();
+      const state = useGameStore.getState();
+      expect(state.totalTdEarned).toBe(10_000);
+      expect(state.evolutionStage).toBe(2);
     });
   });
 });
