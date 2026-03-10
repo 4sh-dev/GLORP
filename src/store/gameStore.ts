@@ -9,7 +9,6 @@ import {
   getGeneratorCostMultiplier,
   getIdleBoostMultiplier,
   getQuickStartTd,
-  getRetainedTiers,
   getTokenMagnetMultiplier,
   PRESTIGE_UPGRADES,
 } from "../data/prestigeShop";
@@ -420,26 +419,8 @@ export const useGameStore = create<GameStore>()(
               : [...state.unlockedSpecies, nextSpecies];
           }
 
-          // No-prestige challenge for next run: disable quick-start and species-memory
+          // No-prestige challenge for next run: disable quick-start
           const nextRunNoPrest = challengeId === "no-prestige";
-
-          // Species Memory: retain owned generators in retained tiers
-          const retainedTiers = nextRunNoPrest
-            ? []
-            : getRetainedTiers(
-                pLevel(state.prestigeUpgrades, "species-memory"),
-              );
-          const retainedUpgrades: Record<string, number> = {};
-          if (retainedTiers.length > 0) {
-            for (const u of UPGRADES) {
-              if (retainedTiers.includes(u.tier)) {
-                const count = state.upgradeOwned[u.id];
-                if (count && count > 0) {
-                  retainedUpgrades[u.id] = count;
-                }
-              }
-            }
-          }
 
           // Quick Start TD
           const quickStartTd = nextRunNoPrest
@@ -457,7 +438,7 @@ export const useGameStore = create<GameStore>()(
             totalTdEarned: quickStartTd,
             evolutionStage:
               quickStartTd > 0 ? getEvolutionStage(quickStartTd) : 0,
-            upgradeOwned: retainedUpgrades,
+            upgradeOwned: {},
             mood: "Neutral" as Mood,
             moodChangedAt: now,
             hasSeenFirstEvolution: false,
