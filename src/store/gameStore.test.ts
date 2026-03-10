@@ -337,7 +337,7 @@ describe("gameStore", () => {
 
     it("performRebirth awards tokens and increments balance", () => {
       useGameStore.setState({
-        totalTdEarned: 2_000_000, // floor(sqrt(2_000_000 / 500_000)) = floor(sqrt(4)) = 2 tokens
+        totalTdEarned: 20_000_000, // floor(sqrt(20_000_000 / 5_000_000)) = floor(sqrt(4)) = 2 tokens
         evolutionStage: 5,
         prestigeTokenBalance: 0,
         wisdomTokens: 0,
@@ -408,7 +408,7 @@ describe("gameStore", () => {
     it("awards 2x tokens when challenge is completed", () => {
       // click-only challenge, need stage >= 3
       useGameStore.setState({
-        totalTdEarned: 2_000_000, // base = floor(sqrt(4)) = 2
+        totalTdEarned: 20_000_000, // base = floor(sqrt(20_000_000 / 5_000_000)) = floor(sqrt(4)) = 2
         evolutionStage: 5,
         activeChallengeId: "click-only",
         runStart: Date.now() - 1000,
@@ -422,7 +422,7 @@ describe("gameStore", () => {
     it("does not award bonus when challenge is not completed", () => {
       // no-prestige needs stage 5, give stage 4 only
       useGameStore.setState({
-        totalTdEarned: 2_000_000,
+        totalTdEarned: 20_000_000, // floor(sqrt(20_000_000 / 5_000_000)) = floor(sqrt(4)) = 2
         evolutionStage: 4,
         activeChallengeId: "no-prestige",
         runStart: Date.now() - 1000,
