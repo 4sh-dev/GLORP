@@ -90,15 +90,6 @@ export const PRESTIGE_UPGRADES: readonly PrestigeUpgrade[] = [
   },
 ];
 
-/** Generator tiers in order, matching Upgrade.tier values. */
-const TIER_ORDER: readonly string[] = [
-  "garage-lab",
-  "startup",
-  "scale-up",
-  "mega-corp",
-  "transcendence",
-];
-
 /** Returns the cost for the next level of a prestige upgrade. */
 export function getPrestigeCost(upgrade: PrestigeUpgrade): number {
   return upgrade.costPerLevel;
@@ -138,9 +129,4 @@ export function getClickMasteryBonus(level: number): number {
 /** Token Magnet multiplier applied to WT earned on rebirth. */
 export function getTokenMagnetMultiplier(level: number): number {
   return 1 + level * 0.2;
-}
-
-/** Returns tiers retained across rebirth by Species Memory level. */
-export function getRetainedTiers(level: number): readonly string[] {
-  return TIER_ORDER.slice(0, level);
 }

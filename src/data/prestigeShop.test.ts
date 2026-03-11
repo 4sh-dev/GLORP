@@ -7,7 +7,6 @@ import {
   getPrestigeCost,
   getPrestigeOfflineEfficiency,
   getQuickStartTd,
-  getRetainedTiers,
   getTokenMagnetMultiplier,
   PRESTIGE_UPGRADES,
 } from "./prestigeShop";
@@ -132,29 +131,5 @@ describe("getTokenMagnetMultiplier", () => {
 
   it("returns 2 at level 5", () => {
     expect(getTokenMagnetMultiplier(5)).toBeCloseTo(2);
-  });
-});
-
-describe("getRetainedTiers", () => {
-  it("returns empty at level 0", () => {
-    expect(getRetainedTiers(0)).toEqual([]);
-  });
-
-  it("returns first tier at level 1", () => {
-    expect(getRetainedTiers(1)).toEqual(["garage-lab"]);
-  });
-
-  it("returns first 3 tiers at level 3", () => {
-    expect(getRetainedTiers(3)).toEqual(["garage-lab", "startup", "scale-up"]);
-  });
-
-  it("returns all 5 tiers at level 5", () => {
-    expect(getRetainedTiers(5)).toEqual([
-      "garage-lab",
-      "startup",
-      "scale-up",
-      "mega-corp",
-      "transcendence",
-    ]);
   });
 });
