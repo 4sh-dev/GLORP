@@ -55,11 +55,11 @@ export function computeClickSeconds(
 /**
  * Compute the total click value in TD.
  *
- * Formula: floor(max(1, clickSeconds × tdPerSecond × speciesClickMultiplier) × comboMultiplier)
+ * Formula: max(1, clickSeconds × tdPerSecond × comboMultiplier × speciesClickMultiplier)
  *
  * The floor of 1 preserves early-game playability before any generators are
- * bought (when tdPerSecond = 0).  The combo multiplier is applied after the
- * floor so it remains effective even when tdPerSecond = 0.
+ * bought (when tdPerSecond = 0).  Once passive income is meaningful the
+ * formula fully governs the result.
  */
 export function computeClickPower(
   state: ClickPowerState,
@@ -81,9 +81,7 @@ export function computeClickPower(
     now,
   );
 
-  return Math.floor(
-    Math.max(1, seconds * tdPerSecond * speciesClickMultiplier) * combo,
-  );
+  return Math.max(1, seconds * tdPerSecond * combo * speciesClickMultiplier);
 }
 
 /**
