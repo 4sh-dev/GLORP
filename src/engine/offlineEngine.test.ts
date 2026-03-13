@@ -24,8 +24,8 @@ function makeState(
   return { upgradeOwned, mood, moodChangedAt, evolutionStage };
 }
 
-// neural-notepad: 0.1 TD/s per owned
-// data-hamster-wheel: 0.5 TD/s per owned
+// neural-notepad: 0.2 TD/s per owned
+// data-hamster-wheel: 2 TD/s per owned
 
 describe("computeOfflineProgress", () => {
   describe("threshold suppression", () => {
@@ -61,8 +61,8 @@ describe("computeOfflineProgress", () => {
 
   describe("4-hour gap calculation", () => {
     it("calculates correct TD for a 4-hour gap with neural-notepad", () => {
-      // 4h = 14,400 seconds, neural-notepad: 0.1 TD/s, 50% efficiency
-      // expected: 0.1 * 14,400 * 0.5 = 720 TD
+      // 4h = 14,400 seconds, neural-notepad: 0.2 TD/s, 50% efficiency
+      // expected: 0.2 * 14,400 * 0.5 = 1,440 TD
       const FOUR_HOURS_MS = 4 * 3_600 * 1000;
       const lastSaved = BASE_NOW - FOUR_HOURS_MS;
       const state = makeState({ "neural-notepad": 1 });
@@ -70,15 +70,15 @@ describe("computeOfflineProgress", () => {
       const result = computeOfflineProgress(lastSaved, BASE_NOW, state);
 
       expect(result).not.toBeNull();
-      expect(result?.earned).toBeCloseTo(0.1 * 14_400 * OFFLINE_EFFICIENCY);
+      expect(result?.earned).toBeCloseTo(0.2 * 14_400 * OFFLINE_EFFICIENCY);
       expect(result?.cappedSeconds).toBeCloseTo(14_400);
       expect(result?.elapsedSeconds).toBeCloseTo(14_400);
     });
 
     it("calculates correct TD for a 4-hour gap with multiple upgrades", () => {
-      // neural-notepad: 0.1 * 2 = 0.2 TD/s, data-hamster-wheel: 0.5 * 1 = 0.5 TD/s
-      // total TD/s = 0.7, 4h = 14,400s, 50% efficiency
-      // expected: 0.7 * 14,400 * 0.5 = 5,040 TD
+      // neural-notepad: 0.2 * 2 = 0.4 TD/s, data-hamster-wheel: 2 * 1 = 2 TD/s
+      // total TD/s = 2.4, 4h = 14,400s, 50% efficiency
+      // expected: 2.4 * 14,400 * 0.5 = 17,280 TD
       const FOUR_HOURS_MS = 4 * 3_600 * 1000;
       const lastSaved = BASE_NOW - FOUR_HOURS_MS;
       const state = makeState({
@@ -89,7 +89,7 @@ describe("computeOfflineProgress", () => {
       const result = computeOfflineProgress(lastSaved, BASE_NOW, state);
 
       expect(result).not.toBeNull();
-      expect(result?.earned).toBeCloseTo(0.7 * 14_400 * OFFLINE_EFFICIENCY);
+      expect(result?.earned).toBeCloseTo(2.4 * 14_400 * OFFLINE_EFFICIENCY);
     });
   });
 
@@ -107,7 +107,7 @@ describe("computeOfflineProgress", () => {
       expect(result?.elapsedSeconds).toBeGreaterThan(OFFLINE_CAP_SECONDS);
       // earned should be based on capped 8h, not 12h
       expect(result?.earned).toBeCloseTo(
-        0.1 * OFFLINE_CAP_SECONDS * OFFLINE_EFFICIENCY,
+        0.2 * OFFLINE_CAP_SECONDS * OFFLINE_EFFICIENCY,
       );
     });
 
@@ -123,8 +123,8 @@ describe("computeOfflineProgress", () => {
     });
 
     it("applies 50% efficiency multiplier", () => {
-      // At 1 TD/s for 1 hour (3,600s) with 50% efficiency = 1,800 TD
-      // data-hamster-wheel: 0.5 TD/s * 2 = 1.0 TD/s
+      // At 4 TD/s for 1 hour (3,600s) with 50% efficiency = 7,200 TD
+      // data-hamster-wheel: 2 TD/s * 2 = 4.0 TD/s
       const ONE_HOUR_MS = 3_600 * 1000;
       const lastSaved = BASE_NOW - ONE_HOUR_MS;
       const state = makeState({ "data-hamster-wheel": 2 });
@@ -132,8 +132,8 @@ describe("computeOfflineProgress", () => {
       const result = computeOfflineProgress(lastSaved, BASE_NOW, state);
 
       expect(result).not.toBeNull();
-      // 1.0 TD/s * 3,600s * 0.5 = 1,800
-      expect(result?.earned).toBeCloseTo(1_800);
+      // 4.0 TD/s * 3,600s * 0.5 = 7,200
+      expect(result?.earned).toBeCloseTo(7_200);
     });
   });
 
