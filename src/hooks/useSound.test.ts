@@ -14,8 +14,11 @@ vi.mock("../utils/synthSounds", () => ({
 }));
 
 // useReducedMotion depends on window.matchMedia — stub it out
+const mockUseReducedMotion = vi.fn(() => false);
 vi.mock("./useReducedMotion", () => ({
-  useReducedMotion: () => false,
+  get useReducedMotion() {
+    return mockUseReducedMotion;
+  },
 }));
 
 import * as synthSounds from "../utils/synthSounds";
@@ -30,6 +33,7 @@ function callHook() {
 beforeEach(() => {
   useSettingsStore.setState(initialSettings);
   vi.clearAllMocks();
+  mockUseReducedMotion.mockReturnValue(false);
 });
 
 describe("useSound", () => {
@@ -75,6 +79,14 @@ describe("useSound", () => {
     useSettingsStore.setState({ soundEnabled: false });
     const sound = callHook();
     sound.playWelcomeBack();
+    expect(synthSounds.getAudioContext).not.toHaveBeenCalled();
+  });
+
+  it("silences all sounds when prefers-reduced-motion is true", () => {
+    mockUseReducedMotion.mockReturnValue(true);
+    useSettingsStore.setState({ soundEnabled: true });
+    const { result } = renderHook(() => useSound());
+    result.current.playClick();
     expect(synthSounds.getAudioContext).not.toHaveBeenCalled();
   });
 });

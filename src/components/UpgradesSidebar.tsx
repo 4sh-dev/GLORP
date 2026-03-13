@@ -106,16 +106,22 @@ export function UpgradesSidebar() {
 
   const handleBulkPurchase = useCallback(
     (id: string, qty: number) => {
-      playPurchase();
+      const dataBefore = useGameStore.getState().trainingData;
       purchaseBulkUpgrade(id, qty);
+      if (useGameStore.getState().trainingData !== dataBefore) {
+        playPurchase();
+      }
     },
     [purchaseBulkUpgrade, playPurchase],
   );
 
   const handleClickUpgradePurchase = useCallback(
     (id: string) => {
-      playPurchase();
+      const dataBefore = useGameStore.getState().trainingData;
       purchaseClickUpgrade(id);
+      if (useGameStore.getState().trainingData !== dataBefore) {
+        playPurchase();
+      }
     },
     [purchaseClickUpgrade, playPurchase],
   );

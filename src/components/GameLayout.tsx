@@ -40,6 +40,8 @@ export function GameLayout() {
   const unlockedCount = useGameStore((s) => s.unlockedAchievements.length);
   const reducedMotion = useReducedMotion();
   const { playWelcomeBack } = useSound();
+  const playWelcomeBackRef = useRef(playWelcomeBack);
+  playWelcomeBackRef.current = playWelcomeBack;
 
   useEffect(() => {
     const state = useGameStore.getState();
@@ -63,10 +65,10 @@ export function GameLayout() {
     if (result) {
       state.addTrainingData(result.earned);
       setOfflineResult(result);
-      playWelcomeBack();
+      playWelcomeBackRef.current();
       useDailyStore.getState().recordOfflineBonus();
     }
-  }, [playWelcomeBack]);
+  }, []);
 
   const handleKonami = useCallback(() => {
     const state = useGameStore.getState();
