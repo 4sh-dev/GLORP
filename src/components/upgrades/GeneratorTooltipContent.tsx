@@ -23,6 +23,8 @@ export function GeneratorTooltipContent({
     percentOfTotal,
     nextMilestoneOwned,
     nextMilestoneMultiplier,
+    deltaTdPerSecond,
+    milestoneWillCross,
   } = computeGeneratorTooltipData(upgrade, owned, allOwned);
 
   const hasMultiplier = milestoneMultiplier > 1 || synergyMultiplier > 1;
@@ -91,7 +93,34 @@ export function GeneratorTooltipContent({
         </Box>
       )}
 
-      {nextMilestoneOwned !== null && (
+      <Divider />
+
+      <Group justify="space-between">
+        <Text size="xs" c="dimmed" ff="monospace">
+          Next purchase adds
+        </Text>
+        <Text
+          size="xs"
+          c={milestoneWillCross ? "yellow" : "green"}
+          fw={700}
+          ff="monospace"
+          style={{
+            textShadow: milestoneWillCross
+              ? "0 0 6px var(--mantine-color-yellow-5)"
+              : "0 0 6px #39ff14",
+          }}
+        >
+          +{formatNumber(deltaTdPerSecond)} TD/s
+        </Text>
+      </Group>
+
+      {milestoneWillCross && (
+        <Text size="xs" c="yellow" ff="monospace">
+          🏆 Milestone! All units ×{nextMilestoneMultiplier}
+        </Text>
+      )}
+
+      {!milestoneWillCross && nextMilestoneOwned !== null && (
         <>
           <Divider />
           <Text size="xs" c="yellow" ff="monospace">

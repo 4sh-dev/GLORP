@@ -21,6 +21,10 @@ export interface GeneratorTooltipData {
   nextMilestoneOwned: number | null;
   nextMilestoneMultiplier: number | null;
   nextMilestoneLabel: string | null;
+  /** TD/s gained by purchasing one more unit (accounts for milestone crossing). */
+  deltaTdPerSecond: number;
+  /** True when buying the next unit crosses a milestone threshold. */
+  milestoneWillCross: boolean;
 }
 
 /**
@@ -50,6 +54,18 @@ export function computeGeneratorTooltipData(
 
   const nextThreshold = MILESTONE_THRESHOLDS[milestoneLevel] ?? null;
 
+  // Delta: TD/s gained by purchasing one more unit.
+  // Milestone crossing is handled correctly: if owned+1 hits a threshold,
+  // ALL existing units benefit from the new multiplier too.
+  const newOwned = owned + 1;
+  const newAllOwned = { ...allOwned, [upgrade.id]: newOwned };
+  const newMilestoneMultiplier = getMilestoneMultiplier(newOwned);
+  const newSynergyMultiplier = getSynergyMultiplier(upgrade.id, newAllOwned);
+  const futureTdForGenerator =
+    upgrade.baseTdPerSecond * newOwned * newMilestoneMultiplier * newSynergyMultiplier;
+  const deltaTdPerSecond = futureTdForGenerator - totalTdForGenerator;
+  const milestoneWillCross = getMilestoneLevel(newOwned) > milestoneLevel;
+
   return {
     name: upgrade.name,
     icon: upgrade.icon,
@@ -63,5 +79,7 @@ export function computeGeneratorTooltipData(
     nextMilestoneOwned: nextThreshold?.owned ?? null,
     nextMilestoneMultiplier: nextThreshold?.multiplier ?? null,
     nextMilestoneLabel: nextThreshold?.label ?? null,
+    deltaTdPerSecond,
+    milestoneWillCross,
   };
 }
