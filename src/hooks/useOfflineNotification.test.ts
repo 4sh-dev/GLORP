@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { act, renderHook } from "@testing-library/react";
+import { act, cleanup, renderHook } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { initialSettings, useSettingsStore } from "../store/settingsStore";
 import {
@@ -58,7 +58,12 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  // Run pending fake timers before unmounting to avoid act() hangs during cleanup.
+  vi.runAllTimers();
   vi.useRealTimers();
+  // Explicitly unmount all rendered hooks to prevent visibilitychange listener
+  // leakage across tests (RTL auto-cleanup does not always fire in per-file jsdom).
+  cleanup();
 });
 
 describe("useOfflineNotification", () => {
@@ -252,15 +257,19 @@ describe("useOfflineNotification", () => {
 
     it("schedules a notification after permission is granted", async () => {
       MockNotification.permission = "default";
-      MockNotification.requestPermission.mockResolvedValue("granted");
+      // Real browsers update Notification.permission before the promise resolves,
+      // so the mock must do the same for scheduleNotification()'s isPermissionGranted()
+      // check to see "granted" when called inside requestPermissionOnInteraction.
+      MockNotification.requestPermission.mockImplementation(async () => {
+        MockNotification.permission = "granted" as NotificationPermission;
+        return "granted" as NotificationPermission;
+      });
       useSettingsStore.setState({ notificationsEnabled: true });
 
       const { result } = renderHook(() => useOfflineNotification());
 
       await act(async () => {
         await result.current.requestPermissionOnInteraction();
-        // Simulate permission becoming granted after the prompt.
-        MockNotification.permission = "granted";
       });
 
       vi.advanceTimersByTime(OFFLINE_CAP_MS + 1000);
