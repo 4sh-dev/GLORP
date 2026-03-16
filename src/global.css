@@ -336,3 +336,49 @@ body {
     animation: none;
   }
 }
+
+/* ── High Contrast mode ─────────────────────────────────────────────────── */
+/* Applied via data-high-contrast="true" on <html>, set by useHighContrast   */
+/* hook. An inline script in index.html sets this attribute before React      */
+/* hydrates to avoid flash of un-styled content.                              */
+
+[data-high-contrast="true"] body {
+  background-color: #000;
+  color: #fff;
+}
+
+[data-high-contrast="true"] {
+  --mantine-color-body: #000;
+  --mantine-color-text: #fff;
+  --neon-green: #39ff14;
+}
+
+/* Interactive elements: bright yellow */
+[data-high-contrast="true"] button,
+[data-high-contrast="true"] [role="button"],
+[data-high-contrast="true"] a {
+  color: #ffff00 !important;
+}
+
+/* ASCII art color spans: revert to terminal green in high contrast */
+[data-high-contrast="true"] .ascii-eyes,
+[data-high-contrast="true"] .ascii-electric,
+[data-high-contrast="true"] .ascii-warm,
+[data-high-contrast="true"] .ascii-glow,
+[data-high-contrast="true"] .ascii-dim {
+  color: #39ff14;
+  text-shadow: none;
+}
+
+/* Mantine dark panel backgrounds → pure black */
+[data-high-contrast="true"] .mantine-AppShell-root,
+[data-high-contrast="true"] .mantine-AppShell-header,
+[data-high-contrast="true"] .mantine-AppShell-main {
+  background-color: #000;
+}
+
+/* Reduce motion: also disable animations in high-contrast mode */
+[data-high-contrast="true"] .float-particle {
+  animation: none;
+  opacity: 0;
+}
