@@ -84,6 +84,11 @@ export interface GameState {
   burstDiscountExpiresAt: number;
   // Data Burst stats — persists across rebirths
   burstCount: number;
+  // Daily Return Bonus & Login Streak — persists across rebirths
+  lastLoginDate: string;
+  streakDays: number;
+  dailyBonusMultiplier: number;
+  dailyBonusExpiresAt: number;
 }
 
 interface GameActions {
@@ -114,6 +119,13 @@ interface GameActions {
   activateBurstDiscount: (durationMs: number) => void;
   clearBurstDiscount: () => void;
   incrementBurstCount: () => void;
+  applyDailyBonus: (
+    streakDays: number,
+    lastLoginDate: string,
+    multiplier: number,
+    durationMs: number,
+  ) => void;
+  clearDailyBonus: () => void;
 }
 
 export type GameStore = GameState & GameActions;
@@ -156,6 +168,10 @@ export const initialGameState: GameState = {
   burstBoostExpiresAt: 0,
   burstDiscountExpiresAt: 0,
   burstCount: 0,
+  lastLoginDate: "",
+  streakDays: 0,
+  dailyBonusMultiplier: 1,
+  dailyBonusExpiresAt: 0,
 };
 
 /** Helper: get a prestige upgrade level from state. */
@@ -208,7 +224,7 @@ export const useGameStore = create<GameStore>()(
             idleBoost * speciesBonus.autoGen,
             boosterMult,
           );
-          const clickPower = computeClickPower(
+          const baseClickPower = computeClickPower(
             {
               clickUpgradesPurchased: state.clickUpgradesPurchased,
               comboCount: newComboCount,
@@ -220,6 +236,10 @@ export const useGameStore = create<GameStore>()(
             clickMastery,
             speciesBonus.clickPower,
           );
+          // Apply daily bonus multiplier to clicks
+          const dailyMult =
+            state.dailyBonusExpiresAt > now ? state.dailyBonusMultiplier : 1;
+          const clickPower = baseClickPower.mul(dailyMult).floor();
           const newTotalTdEarned = state.totalTdEarned.add(clickPower);
           const evoMultiplier = getEvolutionThresholdMultiplier(
             pLevel(effectivePrestige, "evolution-accelerator"),
@@ -412,6 +432,15 @@ export const useGameStore = create<GameStore>()(
       clearBurstDiscount: () => set({ burstDiscountExpiresAt: 0 }),
       incrementBurstCount: () =>
         set((state) => ({ burstCount: state.burstCount + 1 })),
+      applyDailyBonus: (streakDays, lastLoginDate, multiplier, durationMs) =>
+        set({
+          streakDays,
+          lastLoginDate,
+          dailyBonusMultiplier: multiplier,
+          dailyBonusExpiresAt: Date.now() + durationMs,
+        }),
+      clearDailyBonus: () =>
+        set({ dailyBonusMultiplier: 1, dailyBonusExpiresAt: 0 }),
       performRebirth: (selectedSpecies, challengeId) =>
         set((state) => {
           if (!canRebirth(state.evolutionStage)) return state;

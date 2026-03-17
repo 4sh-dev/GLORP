@@ -61,6 +61,9 @@ export function StatsBar() {
   const burstBoostExpiresAt = useGameStore((s) => s.burstBoostExpiresAt);
   const burstMultiplier = useGameStore((s) => s.burstMultiplier);
   const burstDiscountExpiresAt = useGameStore((s) => s.burstDiscountExpiresAt);
+  const streakDays = useGameStore((s) => s.streakDays);
+  const dailyBonusExpiresAt = useGameStore((s) => s.dailyBonusExpiresAt);
+  const dailyBonusMultiplier = useGameStore((s) => s.dailyBonusMultiplier);
   const numberFormat = useSettingsStore((s) => s.numberFormat);
   const fmt = numberFormat === "full" ? formatNumberFull : formatNumber;
 
@@ -105,6 +108,27 @@ export function StatsBar() {
     }, 1000);
     return () => clearInterval(interval);
   }, [burstDiscountExpiresAt]);
+
+  // Daily bonus countdown
+  const [dailyBonusSecondsLeft, setDailyBonusSecondsLeft] = useState(0);
+  useEffect(() => {
+    const remaining = dailyBonusExpiresAt - Date.now();
+    if (remaining <= 0 || dailyBonusMultiplier <= 1) {
+      setDailyBonusSecondsLeft(0);
+      return;
+    }
+    setDailyBonusSecondsLeft(Math.ceil(remaining / 1000));
+    const interval = setInterval(() => {
+      const r = dailyBonusExpiresAt - Date.now();
+      if (r <= 0) {
+        setDailyBonusSecondsLeft(0);
+        clearInterval(interval);
+      } else {
+        setDailyBonusSecondsLeft(Math.ceil(r / 1000));
+      }
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [dailyBonusExpiresAt, dailyBonusMultiplier]);
 
   // Rate-of-change indicator: show sparkle when TD/s increases
   const prevTdPerSecondRef = useRef<Decimal>(tdPerSecond);
@@ -174,6 +198,25 @@ export function StatsBar() {
           {fmt(effectiveClickPower)} TD
         </Text>
       </Text>
+      {streakDays > 0 && (
+        <Text size="sm" ff="monospace">
+          {"\uD83D\uDD25"}{" "}
+          <Text span fw={700} c="orange">
+            {streakDays}
+          </Text>
+          {dailyBonusSecondsLeft > 0 && (
+            <Text
+              span
+              c="yellow"
+              fw={700}
+              ff="monospace"
+              style={{ marginLeft: 4 }}
+            >
+              {dailyBonusMultiplier}&#215; {dailyBonusSecondsLeft}s
+            </Text>
+          )}
+        </Text>
+      )}
       {rebirthCount > 0 && (
         <Text size="sm" ff="monospace">
           Wisdom:{" "}

@@ -9,6 +9,7 @@ import { getSpeciesBonus } from "../data/species";
 import { EASTER_EGG_MESSAGES } from "../engine/easterEggEngine";
 import type { OfflineProgressResult } from "../engine/offlineEngine";
 import { computeOfflineProgress } from "../engine/offlineEngine";
+import { useDailyBonus } from "../hooks/useDailyBonus";
 import { useDailyObjectiveTracking } from "../hooks/useDailyObjectiveTracking";
 import { useGameLoop } from "../hooks/useGameLoop";
 import { useHighContrast } from "../hooks/useHighContrast";
@@ -21,6 +22,7 @@ import { useDailyStore } from "../store/dailyStore";
 import { AchievementsModal } from "./AchievementsModal";
 import { BonusesSidebar } from "./BonusesSidebar";
 import { CrtOverlay } from "./CrtOverlay";
+import { DailyBonusModal } from "./DailyBonusModal";
 import { OfflineProgressModal } from "./OfflineProgressModal";
 import { PetDisplay } from "./PetDisplay";
 import { SettingsPanel } from "./SettingsPanel";
@@ -35,6 +37,7 @@ export function GameLayout() {
   useDailyObjectiveTracking();
   useOfflineNotification();
   useHighContrast();
+  const { bonusInfo, dismissBonus } = useDailyBonus();
 
   const [offlineResult, setOfflineResult] =
     useState<OfflineProgressResult | null>(null);
@@ -149,6 +152,7 @@ export function GameLayout() {
         result={offlineResult}
         onClose={() => setOfflineResult(null)}
       />
+      <DailyBonusModal bonusInfo={bonusInfo} onClose={dismissBonus} />
       <AchievementsModal
         opened={achievementsOpen}
         onClose={() => setAchievementsOpen(false)}

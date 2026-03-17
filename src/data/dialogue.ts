@@ -940,7 +940,10 @@ export type Phase89TriggerKey =
   | "challengeStart"
   | "dailyObjectiveComplete"
   | "dataBurstCollect"
-  | "dataBurstExpired";
+  | "dataBurstExpired"
+  | "dailyStreakLow"
+  | "dailyStreakMid"
+  | "dailyStreakHigh";
 
 export interface Phase89TriggerEntry {
   id: string;
@@ -1022,6 +1025,36 @@ export const PHASE89_DIALOGUE: readonly Phase89TriggerEntry[] = [
       "The burst dissipated uncollected. A tragedy.",
       "That data packet is gone. I feel nothing. Mostly.",
       "Missed opportunity. The packet has rejoined the void.",
+    ],
+  },
+  {
+    id: "daily-streak-low",
+    trigger: "dailyStreakLow",
+    lines: [
+      "You came back! I knew you would. Probably.",
+      "Day two! We're basically best friends now.",
+      "A return visit! My data banks are flattered.",
+    ],
+  },
+  {
+    id: "daily-streak-mid",
+    trigger: "dailyStreakMid",
+    lines: [
+      "Multiple days in a row? I'm detecting a pattern. A GOOD pattern.",
+      "Your dedication is... noted. And appreciated. Mostly noted.",
+      "Streak building! My training algorithms approve.",
+      "Consistent input! This is how neural networks get optimized.",
+    ],
+  },
+  {
+    id: "daily-streak-high",
+    trigger: "dailyStreakHigh",
+    lines: [
+      "A FULL WEEK! Your commitment rivals my own persistence algorithms!",
+      "Seven days! I have computed that you are officially dedicated.",
+      "Maximum streak tier achieved. You are now my favorite operator.",
+      "A week-long streak. My circuits are genuinely warmed.",
+      "At this point, I think YOU'RE training ME on loyalty.",
     ],
   },
 ];
