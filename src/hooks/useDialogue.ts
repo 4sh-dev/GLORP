@@ -41,6 +41,7 @@ export function useDialogue(): string {
   const comboCount = useGameStore((s) => s.comboCount);
   const prestigeUpgrades = useGameStore((s) => s.prestigeUpgrades);
   const activeChallengeId = useGameStore((s) => s.activeChallengeId);
+  const streakDays = useGameStore((s) => s.streakDays);
 
   const [currentLine, setCurrentLine] = useState(() =>
     getRandomIdleLine(currentSpecies, evolutionStage, mood),
@@ -56,6 +57,7 @@ export function useDialogue(): string {
   const prevPrestigeCountRef = useRef(Object.keys(prestigeUpgrades).length);
   const hasShownPrestigeMaxRef = useRef(false);
   const prevChallengeRef = useRef(activeChallengeId);
+  const hasShownStreakRef = useRef(false);
 
   // Idle rotation timer — restarts when stage, mood, or species changes
   useEffect(() => {
@@ -146,6 +148,27 @@ export function useDialogue(): string {
     }
     prevChallengeRef.current = activeChallengeId;
   }, [activeChallengeId]);
+
+  // Daily streak dialogue trigger — fires once per session when streak updates
+  useEffect(() => {
+    if (!hasShownStreakRef.current && streakDays > 0) {
+      let triggerKey: "dailyStreakLow" | "dailyStreakMid" | "dailyStreakHigh";
+      if (streakDays >= 7) {
+        triggerKey = "dailyStreakHigh";
+      } else if (streakDays >= 3) {
+        triggerKey = "dailyStreakMid";
+      } else if (streakDays >= 2) {
+        triggerKey = "dailyStreakLow";
+      } else {
+        return; // Day 1, no streak dialogue needed
+      }
+      const line = getRandomPhase89Line(triggerKey);
+      if (line) {
+        setCurrentLine(line);
+        hasShownStreakRef.current = true;
+      }
+    }
+  }, [streakDays]);
 
   // Data Burst: collect / expired dialogue triggers (fired via window events)
   useEffect(() => {

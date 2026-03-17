@@ -88,10 +88,14 @@ export function useGameLoop() {
       const burstMultiplier =
         state.burstBoostExpiresAt > now ? state.burstMultiplier : 1;
 
+      // Daily bonus multiplier: active only while bonus has not expired
+      const dailyBonusMultiplier =
+        state.dailyBonusExpiresAt > now ? state.dailyBonusMultiplier : 1;
+
       const result = computeTick(
         {
           ...state,
-          idleBoostMultiplier: idleBoost,
+          idleBoostMultiplier: idleBoost * dailyBonusMultiplier,
           speciesAutoGenMultiplier: speciesAutoGen,
           burstMultiplier,
         },
